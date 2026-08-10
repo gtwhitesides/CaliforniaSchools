@@ -855,7 +855,9 @@ function fillPresets(){
           try{ await loadHosted(need[k]); }
           catch(e){ prog(null); say('Could not load '+(need[k].label||need[k].path)+': '+e.message,'err'); return; }
         }
-        prog(null); say(''); paintStatus(); renderHosted(); fillMeasures(); fillPresets();
+        prog(null); say(''); paintStatus(); renderHosted();
+        if(PUB.size)SCHOOLS.forEach(function(r){var d=PUB.get(r.cds);if(d)r.p=d;});
+        fillYears(); fillMeasures(); fillPresets(); fillCounties(); fillDistricts();
       }
       applyPreset(p);
     };
@@ -972,25 +974,11 @@ function zoomNote(){
 }
 function describe(mx,my,grade,cx){
   var cEl=document.getElementById('s-count'),wEl=document.getElementById('s-warn');
-  if(!POINTS.length){
-    cEl.textContent='No schools match these filters. Try widening the county or lowering the minimum tested.';
-    wEl.textContent='';return;
-  }
-  var where=document.getElementById('district').value?'this district':
-            (document.getElementById('county').value?'this county':'California');
-  var cby=document.getElementById('cby').value;
-  var colTxt = cby==='fit'
-    ? 'Colour shows whether its '+my.short+' is higher or lower than the statewide pattern would predict from its '+mx.short+'.'
-    : (cby==='enroll' ? 'Colour shows how students get in: a neighbourhood place by address, a school the family applied to, or a referral placement.'
-      : cby==='charter' ? 'Colour separates charter schools from district-run ones.'
-      : 'Colour separates online schools from classroom schools.');
-  cEl.textContent=POINTS.length.toLocaleString()+' schools in '+where+
-    '. Each dot is one school \u2014 hover to see its name. '+colTxt+
-    (EXCLUDED?' '+EXCLUDED.toLocaleString()+' continuation, community day and juvenile court schools are held out; switch School type to bring them back.':'');
-
-  var w=[],lvl=document.getElementById('level').value,minN=+document.getElementById('minn').value;
-  if((mx.kind==='delta'||my.kind==='delta'||mx.kind==='deltascale'||my.kind==='deltascale')&&!cx.p)
-    w.push('Choose a comparison year above \u2014 change measures need one.');
+  var lvl=document.getElementById('level').value,minN=+document.getElementById('minn').value;
+  var isD=function(m){return m.kind==='delta'||m.kind==='deltascale';};
+  var w=[];
+  if((isD(mx)||isD(my))&&!cx.p)
+    w.push('Choose a comparison year in the "Compare to" box above.');
   if(mx.gs!==my.gs&&(mx.gs==='cast'||my.gs==='cast')&&grade!==5&&grade!==8)
     w.push('Science is only taken in grades 5, 8 and one high school year, so at '+(GLAB[grade]||('grade '+grade))+
            ' the science and English/math results come from different students.');
@@ -1004,10 +992,37 @@ function describe(mx,my,grade,cx){
     w.push('Schools where nearly all students are low-income \u2014 or nearly none \u2014 cannot appear here, because both groups need at least 11 students. What you see is economically mixed schools.');
   if(mx.id==='sed_share'||my.id==='sed_share')
     w.push('The low-income share here is based on who sat the test, not a school\u2019s official enrolment figure.');
-  if((mx.kind==='delta'||my.kind==='delta')&&cx.p&&Math.abs(cx.y-cx.p)>1)
+  if((isD(mx)||isD(my))&&cx.p&&Math.abs(cx.y-cx.p)>1)
     w.push('The two years are '+Math.abs(cx.y-cx.p)+' apart, so most of these students are different people.');
   wEl.textContent=w.join(' ');
+
+  if(!POINTS.length){
+    var why;
+    if((isD(mx)||isD(my))&&!cx.p)
+      why='This view compares one year against another, but no comparison year is selected yet.';
+    else if(document.getElementById('district').value)
+      why='No schools in this district match the other filters. Try All districts, or lower the minimum tested.';
+    else if(document.getElementById('stype').value!=='all'&&document.getElementById('stype').value!=='noref')
+      why='No schools of that type match the other filters.';
+    else
+      why='No schools match these filters. Try widening the county, or lowering the minimum tested.';
+    cEl.textContent=why;
+    return;
+  }
+
+  var where=document.getElementById('district').value?'this district':
+            (document.getElementById('county').value?'this county':'California');
+  var cby=document.getElementById('cby').value;
+  var colTxt = cby==='fit'
+    ? 'Colour shows whether its '+my.short+' is higher or lower than the statewide pattern would predict from its '+mx.short+'.'
+    : (cby==='enroll' ? 'Colour shows how students get in: a neighbourhood place by address, a school the family applied to, or a referral placement.'
+      : cby==='charter' ? 'Colour separates charter schools from district-run ones.'
+      : 'Colour separates online schools from classroom schools.');
+  cEl.textContent=POINTS.length.toLocaleString()+' schools in '+where+
+    '. Each dot is one school \u2014 hover to see its name. '+colTxt+
+    (EXCLUDED?' '+EXCLUDED.toLocaleString()+' continuation, community day and juvenile court schools are held out; switch School type to bring them back.':'');
 }
+
 function standouts(mx,my){
   var head=document.getElementById('h-stand'),sub=document.getElementById('s-standsub'),
       list=document.getElementById('top-stand'),card=document.getElementById('standcard');
