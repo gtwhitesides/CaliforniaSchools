@@ -90,6 +90,10 @@ main.on{display:grid}
 .presets button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule-soft);padding:9px 14px;color:var(--ink);font-weight:400}
 .presets button:hover:not([disabled]){background:#EEF3F7}
 .presets button[disabled]{cursor:default;opacity:.45}
+.presets button.loadable .pt::after{content:' \2193';color:var(--accent);font-weight:700}
+.presets button.loadable .pd{color:var(--accent)}
+.presets button.loadable{background:#F4F8FC}
+.presets button.loadable:hover{background:#E4EDF7}
 .pt{display:block;font-size:13.5px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
 .pd{display:block;font-size:12px;color:var(--muted);line-height:1.35;margin-top:2px}
 .presets button[disabled] .pd{color:var(--warn)}
@@ -765,6 +769,22 @@ function mark(id,on,label,extra){
   var e=document.getElementById(id);e.className=on?'ok':'no';
   e.textContent=label+(on&&extra?': '+extra:'');
 }
+function hostedFor(need){
+  var want = need==='pubses'?['pub','ses'] : [need];
+  var out=[];
+  want.forEach(function(w){
+    HOSTED.forEach(function(f){
+      if(f.provides===w&&!LOADED[f.path]&&out.indexOf(f)<0)out.push(f);
+    });
+  });
+  return out;
+}
+function applyPreset(p){
+  document.getElementById('mx').value=p.x;document.getElementById('my').value=p.y;
+  document.getElementById('cby').value=p.color||'fit';
+  if(p.stype)document.getElementById('stype').value=p.stype;
+  fillGrades();refresh();
+}
 function avail(need){
   if(need==='sb')return HAS.sb;
   if(need==='cast')return HAS.cast;
@@ -815,19 +835,30 @@ function fillPresets(){
   var el=document.getElementById('presets'),html='',last='';
   PRESETS.forEach(function(p,i){
     if(p.g!==last){html+='<div class="pgrp">'+esc(p.g)+'</div>';last=p.g;}
-    var can=avail(p.need);
-    html+='<button data-i="'+i+'"'+(can?'':' disabled')+'><span class="pt">'+esc(p.t)+
-      '</span><span class="pd">'+(can?esc(p.d):'Not available yet \u2014 '+esc(NEEDLABEL[p.need]||'load more data'))+'</span></button>';
+    var can=avail(p.need),pend=can?[]:hostedFor(p.need);
+    var note = can ? esc(p.d)
+      : (pend.length ? 'One click loads '+esc(pend.map(function(f){
+            return (f.label||'').replace(/^Add /,'');}).join(' and '))+', then opens this view.'
+        : 'Not available yet \u2014 '+esc(NEEDLABEL[p.need]||'load more data'));
+    html+='<button data-i="'+i+'"'+(can||pend.length?'':' disabled')+
+      (!can&&pend.length?' class="loadable"':'')+'><span class="pt">'+esc(p.t)+
+      '</span><span class="pd">'+note+'</span></button>';
   });
   el.innerHTML=html;
   Array.prototype.forEach.call(el.querySelectorAll('button'),function(b){
     if(b.disabled)return;
-    b.onclick=function(){
+    b.onclick=async function(){
       var p=PRESETS[+b.getAttribute('data-i')];
-      document.getElementById('mx').value=p.x;document.getElementById('my').value=p.y;
-      document.getElementById('cby').value=p.color||'fit';
-      if(p.stype)document.getElementById('stype').value=p.stype;
-      fillGrades();refresh();};
+      if(!avail(p.need)){
+        var need=hostedFor(p.need);
+        for(var k=0;k<need.length;k++){
+          try{ await loadHosted(need[k]); }
+          catch(e){ prog(null); say('Could not load '+(need[k].label||need[k].path)+': '+e.message,'err'); return; }
+        }
+        prog(null); say(''); paintStatus(); renderHosted(); fillMeasures(); fillPresets();
+      }
+      applyPreset(p);
+    };
   });
 }
 
