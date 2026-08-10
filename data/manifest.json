@@ -6,6 +6,7 @@
     { "path": "data/sb_ca2025entities_csv.zip", "label": "School names",               "size": "1 MB", "provides": "ent",  "auto": true  },
     { "path": "data/pubschls.txt",              "label": "school types",               "size": "8 MB", "provides": "pub",  "auto": false },
     { "path": "data/cast_ca2025_1_csv_v1.zip",  "label": "science results",            "size": "2 MB", "provides": "cast", "auto": false },
-    { "path": "data/sb_ca2024_1_csv_v1.zip",    "label": "last year's results",        "size": "8 MB", "provides": "sb2",  "auto": false }
+    { "path": "data/sb_ca2024_1_csv_v1.zip",    "label": "last year's results",        "size": "8 MB", "provides": "sb2",  "auto": false },
+    { "path": "data/sb_ca2025_all_csv_ela_v1.zip", "label": "income breakdowns", "size": "76 MB", "provides": "ses", "auto": false }
   ]
 }
