@@ -1,0 +1,11 @@
+{
+  "title": "CAASPP school results explorer",
+  "note": "Paths are relative to index.html. Delete any line for a file you did not upload. auto:true loads when the page opens; auto:false shows a button instead.",
+  "files": [
+    { "path": "data/sb_ca2025_1_csv_v1.zip",    "label": "English & math, 2024-25",       "size": "8 MB", "auto": true  },
+    { "path": "data/sb_ca2025entities_csv.zip", "label": "School names",                  "size": "1 MB", "auto": true  },
+    { "path": "data/pubschls.txt",              "label": "Add school types",              "size": "7 MB", "auto": false },
+    { "path": "data/cast_ca2025_1_csv_v1.zip",  "label": "Add science",                   "size": "2 MB", "auto": false },
+    { "path": "data/sb_ca2024_1_csv_v1.zip",    "label": "Add 2023-24 (year-on-year)",    "size": "8 MB", "auto": false }
+  ]
+}

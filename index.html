@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAASPP Explorer — levels, change, and equity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--ground:#E7ECEF;--panel:#FFFFFF;--ink:#0E1A22;--muted:#5A6B76;--faint:#8998A3;
+--rule:#C3CFD7;--rule-soft:#E1E8EC;--accent:#1B4D8F;--pole-lo:#0E7C66;--pole-hi:#7A3FC0;--warn:#9C4A0B;
+--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--sans:"Archivo",system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1440px;margin:0 auto;padding:28px 24px 64px}
+header{border-bottom:1.5px solid var(--ink);padding-bottom:18px;margin-bottom:22px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:700;letter-spacing:-.028em;line-height:1.02;margin:0 0 12px;max-width:20ch}
+h1 em{font-style:normal;color:var(--accent)}
+.standfirst{margin:0;max-width:68ch;color:var(--muted);font-size:16px}
+.loader{background:var(--panel);border:1.5px solid var(--ink);margin-bottom:22px}
+.loader-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;border-bottom:1px solid var(--rule-soft);flex-wrap:wrap}
+.loader-head h2{font-size:16px;margin:0;font-weight:600}
+.loader-body{padding:20px}
+.grp{margin-bottom:16px}
+.grp>.lbl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.grp>.lbl.opt{color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px}
+.step{border-left:2px solid var(--rule);padding-left:13px}
+.step p{margin:0 0 6px;font-size:13.5px;color:var(--muted)}
+.step a{color:var(--accent);text-decoration:none;border-bottom:1px solid currentColor;font-weight:500;font-size:14px}
+.step a:hover{background:#DCE6F2}
+.fname{font-family:var(--mono);font-size:11.5px;color:var(--faint);word-break:break-all;margin-top:3px}
+.hosted{display:flex;flex-wrap:wrap;gap:8px}
+.hosted button{font-size:13px;padding:7px 12px;font-weight:500;background:#EEF3F7;color:var(--ink);border:1px solid var(--rule)}
+.hosted button:hover:not([disabled]){background:var(--accent);color:#fff;border-color:var(--accent)}
+.hosted button[disabled]{opacity:.5;cursor:default}
+.hosted .sz{font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:6px}
+.drop{border:1.5px dashed var(--rule);background:#F5F8F9;padding:24px 20px;text-align:center;transition:.15s}
+.drop.over{border-color:var(--accent);background:#E4EDF7}
+.drop>p{margin:0 0 12px;color:var(--muted);font-size:14px}
+button{font-family:var(--sans);font-size:14px;font-weight:600;background:var(--ink);color:#fff;border:1.5px solid var(--ink);padding:9px 16px;cursor:pointer;transition:.12s}
+button:hover{background:var(--accent);border-color:var(--accent)}
+button.ghost{background:transparent;color:var(--ink)}
+button.ghost:hover{background:var(--ink);color:#fff}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.status{margin-top:16px;display:inline-block;text-align:left;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.status div{padding:2px 0}
+.status .ok::before{content:"\2713  ";color:var(--pole-lo);font-weight:700}
+.status .no::before{content:"\00b7  ";color:var(--faint)}
+.bar{height:5px;background:var(--rule-soft);margin-top:14px;display:none}
+.bar.on{display:block}
+.bar>i{display:block;height:100%;background:var(--accent);width:0%;transition:width .2s}
+.msg{margin-top:12px;font-size:13px;font-family:var(--mono)}
+.msg.err{color:var(--warn)} .msg.busy{color:var(--accent)} .msg.hint{color:var(--faint)}
+.controls{display:none;background:var(--panel);border:1.5px solid var(--ink);padding:14px 18px;margin-bottom:18px;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:14px 18px;align-items:end}
+.controls.on{display:grid}
+.ctl label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.ctl.wide{grid-column:span 2}
+@media(max-width:700px){.ctl.wide{grid-column:span 1}}
+select,input[type=text]{width:100%;font-family:var(--sans);font-size:14px;padding:7px 9px;border:1px solid var(--rule);background:#fff;color:var(--ink);border-radius:0}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.rngval{font-family:var(--mono);font-size:12px}
+main{display:none;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+main.on{display:grid}
+@media(max-width:1000px){main.on{grid-template-columns:1fr}}
+.plotcard{background:var(--panel);border:1.5px solid var(--ink);padding:6px}
+#plot{display:block;width:100%;height:620px;touch-action:none}
+@media(max-width:640px){#plot{height:440px}}
+.legend{display:flex;gap:18px;flex-wrap:wrap;padding:10px 14px 4px;border-top:1px solid var(--rule-soft);margin-top:4px;font-size:12px;color:var(--muted)}
+.swatch{display:inline-block;width:26px;height:9px;vertical-align:-1px;margin-right:6px;background:linear-gradient(90deg,var(--pole-lo),#C9D2D7,var(--pole-hi))}
+.sw-fit{height:0;border-top:2px solid var(--accent);width:26px;display:inline-block;margin-right:6px;vertical-align:3px}
+.rail{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--panel);border:1.5px solid var(--ink)}
+.card h3{font-size:11px;font-family:var(--mono);letter-spacing:.11em;text-transform:uppercase;margin:0;padding:11px 14px;border-bottom:1px solid var(--rule-soft);color:var(--muted);font-weight:500}
+.card .inner{padding:13px 14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}
+.stat .k{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.stat .v{font-family:var(--mono);font-size:21px;font-weight:500;letter-spacing:-.02em}
+.stat .v small{font-size:12px;color:var(--muted);font-weight:400}
+.note{font-size:12.5px;color:var(--muted);margin:12px 0 0;line-height:1.45}
+.note.flag{color:var(--warn)}
+.viewslead{margin:0;padding:10px 14px 2px;font-size:12px;color:var(--muted);line-height:1.4}
+.presets{padding:0}
+@media(min-width:1001px){.presets{max-height:520px;overflow-y:auto}}
+.pgrp{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);padding:11px 14px 5px;border-top:1px solid var(--rule-soft)}
+.presets .pgrp:first-child{border-top:0;color:var(--accent);font-weight:500}
+.presets button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule-soft);padding:9px 14px;color:var(--ink);font-weight:400}
+.presets button:hover:not([disabled]){background:#EEF3F7}
+.presets button[disabled]{cursor:default;opacity:.45}
+.pt{display:block;font-size:13.5px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+.pd{display:block;font-size:12px;color:var(--muted);line-height:1.35;margin-top:2px}
+.presets button[disabled] .pd{color:var(--warn)}
+.readout{padding:2px 14px 10px}
+.readout p{margin:6px 0 0;font-size:12.5px;color:var(--muted);line-height:1.45}
+.readout p.warn{color:var(--warn)}
+.readout p#s-zoom{color:var(--accent);font-weight:500}
+#s-zoom button{font-size:11.5px;padding:3px 8px;margin-left:8px;background:transparent;color:var(--accent);border:1px solid var(--accent);font-weight:500}
+#s-zoom button:hover{background:var(--accent);color:#fff}
+#plot{cursor:crosshair}
+.readout p:empty{display:none}
+.standsub{margin:0;padding:9px 14px 4px;font-size:12px;color:var(--muted);line-height:1.4}
+.olist{list-style:none;margin:0;padding:0}
+.olist li{border-bottom:1px solid var(--rule-soft);padding:8px 14px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.olist li:last-child{border-bottom:0}
+.olist li:hover{background:#EEF3F7}
+.olist .nm{font-size:13px;line-height:1.25}
+.olist .sub{display:block;font-size:11px;color:var(--faint)}
+.olist .val{font-family:var(--mono);font-size:13px;white-space:nowrap;text-align:right}
+.olist .val b{display:block;font-weight:500;font-size:14px}
+.olist .val .act{display:block;font-size:10.5px;color:var(--faint);font-weight:400}
+.val.good{color:#009E73}
+footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted);max-width:82ch}
+footer h4{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;margin:16px 0 8px;color:var(--ink)}
+footer h4:first-child{margin-top:0}
+footer p{margin:0 0 9px}
+footer code{font-family:var(--mono);font-size:11.5px;background:#DDE4E9;padding:1px 4px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">CAASPP · Smarter Balanced + Science · levels, change, and equity</p>
+  <h1>Every California school, <em>on any two measures</em>.</h1>
+  <p class="standfirst">Drop in whatever research files you have. The tool works out what each one is — subject, year, student groups — and unlocks the measures that data supports.</p>
+</header>
+
+<section class="loader" id="loader">
+  <div class="loader-head">
+    <h2>Load the data</h2>
+    <button class="ghost" id="collapse" style="display:none">Hide this panel</button>
+  </div>
+  <div class="loader-body">
+
+    <div class="grp"><div class="lbl">Start here — English and math, 2024–25</div>
+      <div class="steps">
+        <div class="step"><p>Scores, All Students. 8 MB.</p>
+          <a href="https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2025_1_csv_v1.zip">Smarter Balanced scores</a>
+          <div class="fname">sb_ca2025_1_csv_v1.zip</div></div>
+        <div class="step"><p>Entities — school and district names.</p>
+          <a href="https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2025entities_csv.zip">Entities</a>
+          <div class="fname">sb_ca2025entities_csv.zip</div></div>
+      </div>
+    </div>
+
+    <div class="grp"><div class="lbl opt">Adds science measures</div>
+      <div class="steps">
+        <div class="step"><p>CAST scores, All Students. 2 MB.</p>
+          <a href="https://caaspp-elpac.ets.org/caaspp/researchfiles/cast_ca2025_1_csv_v1.zip">Science scores</a>
+          <div class="fname">cast_ca2025_1_csv_v1.zip</div></div>
+      </div>
+    </div>
+
+    <div class="grp"><div class="lbl opt">Adds year-over-year change</div>
+      <div class="steps">
+        <div class="step"><p>Prior-year scores. Any year 2015–2024; 2023–24 is the natural comparison.</p>
+          <a href="https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2024_1_csv_v1.zip">2023–24 scores</a>
+          <div class="fname">sb_ca2024_1_csv_v1.zip</div></div>
+        <div class="step"><p>Prior-year science, if you want science change too.</p>
+          <a href="https://caaspp-elpac.ets.org/caaspp/researchfiles/cast_ca2024_1_csv_v1.zip">2023–24 science</a>
+          <div class="fname">cast_ca2024_1_csv_v1.zip</div></div>
+      </div>
+    </div>
+
+    <div class="grp"><div class="lbl opt">Adds school type and enrolment</div>
+      <div class="steps">
+        <div class="step"><p>The state school directory \u2014 which schools are charter, magnet, online, or enrol by referral. 7 MB, tab-delimited. Use this link, not the XLSX on that page: the Excel version will not load.</p>
+          <a href="https://www.cde.ca.gov/schooldirectory/report?rid=dl1&amp;tp=txt">School directory (TXT)</a>
+          <div class="fname">Public Schools and Districts \u2014 TXT, not XLSX</div></div>
+      </div>
+    </div>
+
+    <div class="grp"><div class="lbl opt">Adds socioeconomic measures — big file, streamed</div>
+      <div class="steps">
+        <div class="step"><p>All Student Groups, statewide. 154 MB zipped, roughly a gigabyte of text. Parsing takes a few minutes.</p>
+          <a href="https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2025_all_csv_v1.zip">All groups, statewide</a>
+          <div class="fname">sb_ca2025_all_csv_v1.zip</div></div>
+        <div class="step"><p>Much lighter: pick a single county or district from the CDE page. Same format, and SES measures will cover just that area.</p>
+          <a href="https://caaspp-elpac.ets.org/caaspp/ResearchFileListSB">Countywide / districtwide files</a></div>
+      </div>
+    </div>
+
+    <div class="grp" id="hostedgrp" style="display:none">
+      <div class="lbl">Data published with this page</div>
+      <div class="hosted" id="hosted"></div>
+    </div>
+
+    <div class="drop" id="drop">
+      <p>Drop any of these in, together or one at a time. Zips are fine.</p>
+      <button id="pick">Choose files</button>
+      <input type="file" id="file" multiple accept=".zip,.txt,.csv,.tsv,.dat,.xlsx,.xls," hidden>
+      <div class="status" id="status">
+        <div class="no" id="f-core">English and math</div>
+        <div class="no" id="f-ent">School names</div>
+        <div class="no" id="f-sci">Science</div>
+        <div class="no" id="f-yrs">Years loaded</div>
+        <div class="no" id="f-ses">Socioeconomic groups</div>
+        <div class="no" id="f-pub">School directory</div>
+      </div>
+      <div class="bar" id="bar"><i id="barfill"></i></div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+</section>
+
+<section class="controls" id="controls">
+  <div class="ctl wide"><label for="mx">Horizontal axis</label><select id="mx"></select></div>
+  <div class="ctl wide"><label for="my">Vertical axis</label><select id="my"></select></div>
+  <div class="ctl"><label>&nbsp;</label><button class="ghost" id="swap" style="width:100%;padding:7px 6px;font-size:13px">Swap axes</button></div>
+  <div class="ctl"><label for="year">Year</label><select id="year"></select></div>
+  <div class="ctl"><label for="prior">Compare to</label><select id="prior"></select></div>
+  <div class="ctl"><label for="grade">Grades</label><select id="grade"></select></div>
+  <div class="ctl"><label for="level">School level</label><select id="level">
+    <option value="all">All levels</option><option value="elem">Elementary</option>
+    <option value="mid">Middle</option><option value="high">High</option><option value="span">Span / other</option></select></div>
+  <div class="ctl"><label for="county">County</label><select id="county"><option value="">All counties</option></select></div>
+  <div class="ctl"><label for="district">District</label><select id="district"><option value="">All districts</option></select></div>
+  <div class="ctl"><label for="stype">School type</label><select id="stype">
+    <option value="noref">All but referral schools</option>
+    <option value="all">Every school</option>
+    <option value="zoned">Neighbourhood only</option>
+    <option value="choice">Applied to only</option>
+    <option value="referral">Referral only</option></select></div>
+  <div class="ctl"><label for="cby">Colour by</label><select id="cby">
+    <option value="fit">Position vs the pattern</option>
+    <option value="enroll">How students enrol</option>
+    <option value="charter">Charter or not</option>
+    <option value="virtual">Online or in person</option></select></div>
+  <div class="ctl"><label for="scale">Axis range</label><select id="scale">
+    <option value="full">Full range</option>
+    <option value="fit">Zoom to the data</option></select></div>
+  <div class="ctl"><label for="minn">Min. tested <span class="rngval" id="minnv">25</span></label><input type="range" id="minn" min="11" max="300" value="25"></div>
+  <div class="ctl"><label for="search">Find a school</label><input type="text" id="search" placeholder="e.g. Saugus High" autocomplete="off"></div>
+  <div class="ctl"><label>&nbsp;</label><button class="ghost" id="export">Export CSV</button></div>
+</section>
+
+<main id="main">
+  <div><div class="plotcard">
+    <canvas id="plot"></canvas>
+    <div class="legend" id="legend"></div>
+    <div class="readout"><p id="s-zoom" style="display:none"><span id="s-zoomtxt"></span><button id="unzoom">Reset zoom</button></p><p id="s-count"></p><p class="warn" id="s-warn"></p></div>
+  </div></div>
+  <div class="rail">
+    <div class="card" id="viewscard"><h3>Views</h3><p class="viewslead">Search for your school in the box above, then pick a question. It stays highlighted as you switch views.</p><div class="presets" id="presets"></div></div>
+    <div class="card" id="standcard"><h3 id="h-stand">Standing out</h3>
+      <p class="standsub" id="s-standsub"></p>
+      <ul class="olist" id="top-stand"></ul></div>
+  </div>
+</main>
+
+<footer>
+  <h4>Filtering</h4>
+  <p>Only school-level rows are kept — Type ID <code>07</code>, <code>09</code>, or <code>10</code>. District, county, and state summary rows are dropped so nothing is double-counted. Student groups <code>001</code> (All Students), <code>031</code> (socioeconomically disadvantaged) and <code>111</code> (not socioeconomically disadvantaged) are retained; the other fifty-odd groups are discarded as the file streams past. Smarter Balanced English is Test ID <code>1</code>, math <code>2</code>, CAST <code>17</code>. Everything joins on the 14-digit county–district–school code, and each file is filed under whatever year its own Test Year column reports.</p>
+  <p><strong>A note on naming.</strong> What this tool calls English, the state calls <em>ELA</em> — English language arts/literacy. The label is plainer here, but if you cross-reference against CDE record layouts, DataQuest, or a district's own reporting, look for ELA. The underlying measure is identical.</p>
+
+  <h4>Year-over-year change</h4>
+  <p>Change measures subtract the comparison year from the selected year for the same school and grade. Two things distort them. Schools reconstitute, merge, and change CDS codes, so a code that exists in both years is not guaranteed to be the same school community. And a school's grade-11 cohort in 2025 is a different set of students from its grade-11 cohort in 2024 — this is a change in the school's result, not growth by individual students. True cohort growth would require following grade 7 in 2024 into grade 8 in 2025, which these files support but the tool does not currently do.</p>
+
+  <h4>Family income measures</h4>
+  <p>What this tool calls <em>lower-income students</em>, the state calls <em>socioeconomically disadvantaged</em>, or SED. The plainer wording is a simplification: the state’s definition also covers students whose parents did not complete high school, and students who are foster or homeless — so it is somewhat broader than income alone. The share is computed as students tested in group <code>031</code> divided by students tested in group <code>001</code>. That is a <em>proxy</em> for school poverty derived from who sat the test, not the official unduplicated pupil percentage a school reports for funding. The two track each other closely but are not the same number, and the proxy should not be quoted as a school's poverty rate.</p>
+  <p>The equity gap subtracts the disadvantaged group's result from the non-disadvantaged group's. Both groups must clear the 11-student reporting floor, so schools that are nearly all low-income — or nearly all affluent — drop out of gap measures entirely. The surviving sample is biased toward economically mixed schools, which is precisely the population where gaps are most visible. Read the gap chart as a statement about mixed-income schools, not about all schools.</p>
+
+  <h4>Scale scores versus percentages</h4>
+  <p>Percent met or exceeded is scored against a grade-specific cut, so it means the same thing in third grade and eleventh. Mean scale score does not: Smarter Balanced uses a vertical scale that climbs with grade, and CAST scale scores are a different scale entirely with no relationship to the Smarter Balanced numbers. The tool refuses to fit those two against each other.</p>
+
+  <h4>Science coverage</h4>
+  <p>CAST is given in grades 5, 8, and one high school grade of the school's choosing. Smarter Balanced runs 3–8 and 11. Science joins cleanly to English and math at grades 5 and 8, where the same students sat both tests the same spring. Anywhere else the cohorts differ, and the tool says so.</p>
+
+  <h4>Reading a zoomed chart</h4>
+  <p>Axis range and drag-zoom change only what you can see, never what is calculated. The fitted line stays fitted to every school passing your filters, and each school’s position relative to it is unchanged — so a dot’s colour means the same thing zoomed in as zoomed out. Be careful reading magnitudes off a zoomed chart, though: cropping a percentage axis from 0–100 down to 30–50 makes a two-point difference look like a chasm. The full range is the honest default; the zoom is for finding a school in a crowd, not for judging how far apart two schools are.</p>
+
+  <h4>Color and suppression</h4>
+  <p>Points are shaded by residual from the fitted line. Given a school's X, is its Y above or below what the statewide pattern predicts? Nothing is reported for any group under 11 students, so the smallest schools are absent by construction rather than missing by error.</p>
+</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============ accessors ============ */
+function Yr(r,y){return r.y[y]||null;}
+function sbv(r,y,g,t){var Y=Yr(r,y);if(!Y)return null;var s=Y.sb[g];return s&&s[t]?s[t]:null;}
+function ctv(r,y,g){var Y=Yr(r,y);if(!Y)return null;return Y.cast[g]||null;}
+function grp(r,y,g,t,k){var Y=Yr(r,y);if(!Y)return null;var s=Y[k][g];return s&&s[t]?s[t]:null;}
+function ok(v){return v!=null&&isFinite(v);}
+
+function base(get,field){return function(r,g,cx){var s=get(r,cx.y,g);return s&&ok(s[field])?{v:s[field],n:s.n}:null;};}
+function dlt(get,field){return function(r,g,cx){
+  if(!cx.p)return null;
+  var a=get(r,cx.y,g),b=get(r,cx.p,g);
+  if(!a||!b||!ok(a[field])||!ok(b[field]))return null;
+  return {v:a[field]-b[field],n:Math.min(a.n||0,b.n||0)};};}
+
+var SB1=function(r,y,g){return sbv(r,y,g,1);}, SB2=function(r,y,g){return sbv(r,y,g,2);};
+
+/* ============ measures ============ */
+var M=[
+ {id:'ela_pma',grp:'Overall',label:'English — % met or exceeded',gs:'sb',kind:'pct',short:'English %met',need:'sb',f:base(SB1,'pma')},
+ {id:'math_pma',grp:'Overall',label:'Math — % met or exceeded',gs:'sb',kind:'pct',short:'Math %met',need:'sb',f:base(SB2,'pma')},
+ {id:'sci_pma',grp:'Overall',label:'Science — % met or exceeded',gs:'cast',kind:'pct',short:'Sci %met',need:'cast',f:base(ctv,'pma')},
+ {id:'ela_pex',grp:'Overall',label:'English — % exceeded (advanced)',gs:'sb',kind:'pct',short:'English %adv',need:'sb',f:base(SB1,'pex')},
+ {id:'math_pex',grp:'Overall',label:'Math — % exceeded (advanced)',gs:'sb',kind:'pct',short:'Math %adv',need:'sb',f:base(SB2,'pex')},
+ {id:'sci_pex',grp:'Overall',label:'Science — % exceeded',gs:'cast',kind:'pct',short:'Sci %adv',need:'cast',f:base(ctv,'pex')},
+
+ {id:'ela_ms',grp:'Scale score',label:'English — mean scale score',gs:'sb',kind:'sbscale',short:'English scale',need:'sb',f:base(SB1,'ms')},
+ {id:'math_ms',grp:'Scale score',label:'Math — mean scale score',gs:'sb',kind:'sbscale',short:'Math scale',need:'sb',f:base(SB2,'ms')},
+ {id:'sci_ms',grp:'Scale score',label:'Science — mean scale score',gs:'cast',kind:'castscale',short:'Sci scale',need:'cast',f:base(ctv,'ms')},
+
+ {id:'ela_a1',grp:'English claims',label:'Reading — % above standard',gs:'sb',kind:'claim',short:'Reading',need:'sb',f:base(SB1,'a1')},
+ {id:'ela_a2',grp:'English claims',label:'Writing — % above standard',gs:'sb',kind:'claim',short:'Writing',need:'sb',f:base(SB1,'a2')},
+ {id:'ela_a3',grp:'English claims',label:'Speaking & listening — % above',gs:'sb',kind:'claim',short:'Listening',need:'sb',f:base(SB1,'a3')},
+ {id:'ela_a4',grp:'English claims',label:'Research & inquiry — % above',gs:'sb',kind:'claim',short:'Research',need:'sb',f:base(SB1,'a4')},
+ {id:'math_a1',grp:'Math claims',label:'Concepts & procedures — % above',gs:'sb',kind:'claim',short:'Concepts',need:'sb',f:base(SB2,'a1')},
+ {id:'math_a2',grp:'Math claims',label:'Problem solving — % above',gs:'sb',kind:'claim',short:'Problem solving',need:'sb',f:base(SB2,'a2')},
+ {id:'math_a3',grp:'Math claims',label:'Communicating reasoning — % above',gs:'sb',kind:'claim',short:'Reasoning',need:'sb',f:base(SB2,'a3')},
+ {id:'sci_life',grp:'Science domains',label:'Life sciences — % above',gs:'cast',kind:'claim',short:'Life sci',need:'cast',f:base(ctv,'a1')},
+ {id:'sci_phys',grp:'Science domains',label:'Physical sciences — % above',gs:'cast',kind:'claim',short:'Physical sci',need:'cast',f:base(ctv,'a2')},
+ {id:'sci_earth',grp:'Science domains',label:'Earth & space sciences — % above',gs:'cast',kind:'claim',short:'Earth sci',need:'cast',f:base(ctv,'a3')},
+
+ {id:'d_ela_pma',grp:'Change vs comparison year',label:'English % met — change',gs:'sb',kind:'delta',short:'\u0394English',need:'sb2',f:dlt(SB1,'pma')},
+ {id:'d_math_pma',grp:'Change vs comparison year',label:'Math % met — change',gs:'sb',kind:'delta',short:'\u0394Math',need:'sb2',f:dlt(SB2,'pma')},
+ {id:'d_sci_pma',grp:'Change vs comparison year',label:'Science % met — change',gs:'cast',kind:'delta',short:'\u0394Sci',need:'cast2',f:dlt(ctv,'pma')},
+ {id:'d_ela_ms',grp:'Change vs comparison year',label:'English scale score — change',gs:'sb',kind:'deltascale',short:'\u0394English scale',need:'sb2',f:dlt(SB1,'ms')},
+ {id:'d_math_ms',grp:'Change vs comparison year',label:'Math scale score — change',gs:'sb',kind:'deltascale',short:'\u0394Math scale',need:'sb2',f:dlt(SB2,'ms')},
+
+ {id:'sed_share',pol:'none',grp:'Family income',label:'Share of students from lower-income families',gs:'ses',kind:'pct',short:'lower-income share',need:'ses',
+  f:function(r,g,cx){var a=grp(r,cx.y,g,1,'sed'),b=sbv(r,cx.y,g,1);
+    if(!a||!b||!ok(a.n)||!ok(b.n)||b.n<=0)return null;return {v:a.n/b.n*100,n:b.n};}},
+ {id:'sed_ela',grp:'Family income',label:'English % met — lower-income students',gs:'ses',kind:'pct',short:'lower-income English',need:'ses',
+  f:function(r,g,cx){var a=grp(r,cx.y,g,1,'sed');return a&&ok(a.pma)?{v:a.pma,n:a.n}:null;}},
+ {id:'sed_math',grp:'Family income',label:'Math % met — lower-income students',gs:'ses',kind:'pct',short:'lower-income math',need:'ses',
+  f:function(r,g,cx){var a=grp(r,cx.y,g,2,'sed');return a&&ok(a.pma)?{v:a.pma,n:a.n}:null;}},
+ {id:'nsed_ela',grp:'Family income',label:'English % met — all other students',gs:'ses',kind:'pct',short:'other students, English',need:'ses',
+  f:function(r,g,cx){var a=grp(r,cx.y,g,1,'nsed');return a&&ok(a.pma)?{v:a.pma,n:a.n}:null;}},
+ {id:'nsed_math',grp:'Family income',label:'Math % met — all other students',gs:'ses',kind:'pct',short:'other students, math',need:'ses',
+  f:function(r,g,cx){var a=grp(r,cx.y,g,2,'nsed');return a&&ok(a.pma)?{v:a.pma,n:a.n}:null;}},
+ {id:'gap_ses_ela',pol:'down',grp:'Family income',label:'English gap between lower-income students and the rest',gs:'ses',kind:'gap',short:'English income gap',need:'ses',
+  f:function(r,g,cx){var a=grp(r,cx.y,g,1,'nsed'),b=grp(r,cx.y,g,1,'sed');
+    if(!a||!b||!ok(a.pma)||!ok(b.pma))return null;return {v:a.pma-b.pma,n:Math.min(a.n||0,b.n||0)};}},
+ {id:'gap_ses_math',pol:'down',grp:'Family income',label:'Math gap between lower-income students and the rest',gs:'ses',kind:'gap',short:'Math income gap',need:'ses',
+  f:function(r,g,cx){var a=grp(r,cx.y,g,2,'nsed'),b=grp(r,cx.y,g,2,'sed');
+    if(!a||!b||!ok(a.pma)||!ok(b.pma))return null;return {v:a.pma-b.pma,n:Math.min(a.n||0,b.n||0)};}},
+
+ {id:'gap_em',pol:'down',grp:'Derived',label:'English minus math (points)',gs:'sb',kind:'gap',short:'English\u2212math',need:'sb',
+  f:function(r,g,cx){var a=sbv(r,cx.y,g,1),b=sbv(r,cx.y,g,2);
+    if(!a||!b||!ok(a.pma)||!ok(b.pma))return null;return {v:a.pma-b.pma,n:Math.min(a.n,b.n)};}},
+ {id:'part_ela',pol:'none',grp:'Derived',label:'English participation rate',gs:'sb',kind:'pct',short:'Participation',need:'sb',
+  f:function(r,g,cx){var a=sbv(r,cx.y,g,1);
+    if(!a||!ok(a.n)||!ok(a.enr)||a.enr<=0)return null;return {v:a.n/a.enr*100,n:a.n};}},
+ {id:'size',pol:'none',grp:'Derived',label:'Students tested (English)',gs:'sb',kind:'count',short:'N tested',need:'sb',
+  f:function(r,g,cx){var a=sbv(r,cx.y,g,1);return a&&ok(a.n)?{v:a.n,n:a.n}:null;}}
+];
+var MBY={};M.forEach(function(m){MBY[m.id]=m;});
+
+var PRESETS=[
+ {g:'Start here \u2014 how is my school doing?',t:'Where does my school sit?',d:'English against math. Top right is strong in both. Find your school with the search box above and it will light up.',x:'ela_pma',y:'math_pma',need:'sb'},
+ {g:'Start here \u2014 how is my school doing?',t:'Is it doing well for the students it serves?',d:'Results against the share of lower-income students. Schools above the line are outperforming others with similar intakes \u2014 the fairest comparison this data allows.',x:'sed_share',y:'ela_pma',need:'ses'},
+ {g:'Start here \u2014 how is my school doing?',t:'Is it getting better or worse?',d:'Where the school stands now against how far it moved since last year. Above the middle line means it improved.',x:'ela_pma',y:'d_ela_pma',need:'sb2'},
+ {g:'Start here \u2014 how is my school doing?',t:'Does it work for every student?',d:'Lower-income students against everyone else in the same school. The further below the diagonal, the wider the gap inside that building.',x:'nsed_ela',y:'sed_ela',need:'ses'},
+ {g:'Start here \u2014 how is my school doing?',t:'What kind of school is it?',d:'Colour separates neighbourhood schools from ones a family had to apply to \u2014 charter, magnet, school of choice.',x:'ela_pma',y:'math_pma',color:'enroll',need:'pub'},
+ {g:'Start here \u2014 how is my school doing?',t:'Is math keeping up with English?',d:'The distance between a school\u2019s two core subjects. Most schools lag in math; this shows by how much.',x:'ela_pma',y:'gap_em',need:'sb'},
+ {g:'Inside English',t:'Reading vs writing',d:'Two halves of English that schools often teach unevenly. Schools far off the line are much stronger at one than the other.',x:'ela_a1',y:'ela_a2',need:'sb'},
+ {g:'Inside English',t:'Reading vs listening',d:'Whether students who read well also follow spoken language well \u2014 revealing in schools with many English learners.',x:'ela_a1',y:'ela_a3',need:'sb'},
+ {g:'Inside English',t:'Reading vs research skills',d:'Finding and using evidence, against plain reading comprehension.',x:'ela_a1',y:'ela_a4',need:'sb'},
+
+ {g:'Inside math',t:'Computation vs reasoning',d:'Getting the right answer against explaining why it is right. A school can be good at one and weak at the other.',x:'math_a1',y:'math_a3',need:'sb'},
+ {g:'Inside math',t:'Computation vs problem solving',d:'Procedures against applying them to unfamiliar problems.',x:'math_a1',y:'math_a2',need:'sb'},
+
+ {g:'About the school',t:'Exceeding, not just meeting',d:'Meeting the standard is the floor. This shows where students are going well beyond it.',x:'ela_pex',y:'math_pex',need:'sb'},
+
+ {g:'About the school',t:'Does school size matter?',d:'Bigger schools against their results. Most people assume a relationship here; the chart shows how weak it actually is.',x:'size',y:'ela_pma',need:'sb'},
+ {g:'About the school',t:'Who actually sat the test',d:'Participation against results. A school where many students skipped the test has a less reliable score \u2014 worth checking before comparing.',x:'part_ela',y:'ela_pma',need:'sb'},
+
+ {g:'Science',t:'Science vs math',d:'Whether strength in math carries into science. Cleanest at grades 5 and 8.',x:'math_pma',y:'sci_pma',need:'cast'},
+ {g:'Science',t:'Science vs English',d:'Science reading is heavy, so English strength often shows up here.',x:'ela_pma',y:'sci_pma',need:'cast'},
+ {g:'Science',t:'Life vs physical sciences',d:'Which branch of science a school teaches better.',x:'sci_life',y:'sci_phys',need:'cast'},
+
+ {g:'Getting better or worse',t:'Improving or slipping \u2014 math',d:'The same picture for math, where recovery has been slower statewide.',x:'math_pma',y:'d_math_pma',need:'sb2'},
+ {g:'Getting better or worse',t:'Broad gains or narrow',d:'English change against math change. Schools improving in both are doing something general; one subject only suggests a specific programme.',x:'d_ela_pma',y:'d_math_pma',need:'sb2'},
+
+ {g:'Choice and enrolment',t:'Does choosing pay off?',d:'Poverty against results with choice schools picked out. The question is whether they sit above the line at the same poverty level.',x:'sed_share',y:'ela_pma',color:'enroll',need:'pubses'},
+ {g:'Choice and enrolment',t:'Charter vs district',d:'Charters highlighted. They must admit by lottery, so any difference reflects who applied, not who was picked.',x:'ela_pma',y:'math_pma',color:'charter',need:'pub'},
+ {g:'Choice and enrolment',t:'Online vs in person',d:'Virtual schools behave very differently from classroom schools and are worth seeing on their own.',x:'ela_pma',y:'math_pma',color:'virtual',need:'pub'},
+ {g:'Choice and enrolment',t:'Referral schools in context',d:'Brings continuation, community day and juvenile court schools back in. They enrol students who struggled elsewhere, and belong in a separate conversation.',x:'ela_pma',y:'math_pma',color:'enroll',stype:'all',need:'pub'},
+
+ {g:'Income and opportunity',t:'Poverty and math results',d:'The same relationship in math, where the slope is usually steeper.',x:'sed_share',y:'math_pma',need:'ses'},
+ {g:'Income and opportunity',t:'Where gaps are widest',d:'School results against the size of the internal income gap. High-scoring schools do not always have small gaps.',x:'ela_pma',y:'gap_ses_ela',need:'ses'},
+ {g:'Income and opportunity',t:'Gaps in English vs math',d:'Whether a school\u2019s income gap is the same size in both subjects.',x:'gap_ses_ela',y:'gap_ses_math',need:'ses'}
+];
+var NEEDLABEL={sb:'',cast:'add the science file',sb2:'add a second year',cast2:'add a second year of science',ses:'add the all-groups file',pub:'add the school directory file',pubses:'add the directory and all-groups files'};
+
+var GLAB={3:'Grade 3',4:'Grade 4',5:'Grade 5',6:'Grade 6',7:'Grade 7',8:'Grade 8',
+ 10:'Grade 10',11:'Grade 11',12:'Grade 12',13:'All grades',14:'All high school'};
+
+/* ============ state ============ */
+var SCHOOLS=new Map(), YEARS=new Set(), PUB=new Map();
+// students are placed in these by referral, not chosen by a family
+var REF_SOC={'09':1,'10':1,'11':1,'13':1,'14':1,'15':1,'31':1,'68':1,'69':1,'70':1,'98':1};
+var REF_ED={COMM:1,COMMDAY:1,CON:1,JUV:1,OPP:1,YTH:1,SPEC:1,SPECON:1,SPEDATP:1,SSS:1,HOMHOS:1,ROP:1};
+function enrollCat(r){
+  var p=r.p; if(!p)return 'unknown';
+  var soc=p.soc||'', ed=(p.edOps||'').toUpperCase();
+  if(REF_SOC[soc]||REF_ED[ed])return 'referral';
+  if(p.charter==='Y'||p.magnet==='Y'||soc==='63'||ed==='ALTSOC')return 'choice';
+  if(p.virtual==='F'||p.virtual==='V')return 'choice';
+  return 'zoned';
+}
+var CATLAB={zoned:'Neighbourhood',choice:'Applied to',referral:'Referral',unknown:'Not in directory'};
+var CATCOL={zoned:'#0072B2',choice:'#D55E00',referral:'#009E73',unknown:'#AEBAC3'};
+var GS={sb:new Set(),cast:new Set(),ses:new Set()};
+var HAS={sb:false,cast:false,ent:false,ses:false,pub:false};
+var CASTY=new Set(), SBY=new Set();
+var ZOOM=null,DRAG=null,dragged=false;
+var POINTS=[],EXCLUDED=0,FIT=null,hoverIdx=-1,pinnedIdx=-1,matches=new Set(),GEO=null;
+
+/* ============ intake ============ */
+var dropEl=document.getElementById('drop'),fileEl=document.getElementById('file'),
+    msgEl=document.getElementById('msg'),barEl=document.getElementById('bar'),fillEl=document.getElementById('barfill');
+document.getElementById('pick').onclick=function(){fileEl.click();};
+fileEl.onchange=function(){handleFiles(fileEl.files);fileEl.value='';};
+['dragenter','dragover'].forEach(function(e){dropEl.addEventListener(e,function(v){v.preventDefault();dropEl.classList.add('over');});});
+['dragleave','drop'].forEach(function(e){dropEl.addEventListener(e,function(v){v.preventDefault();dropEl.classList.remove('over');});});
+dropEl.addEventListener('drop',function(v){handleFiles(v.dataTransfer.files);});
+function say(t,c){msgEl.textContent=t;msgEl.className='msg'+(c?' '+c:'');}
+function prog(p){if(p==null){barEl.classList.remove('on');return;}barEl.classList.add('on');fillEl.style.width=Math.max(0,Math.min(100,p))+'%';}
+
+async function handleFiles(list){
+  var files=Array.prototype.slice.call(list||[]);
+  if(!files.length)return;
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    say('Reading '+f.name+' \u2014 file '+(i+1)+' of '+files.length+'\u2026','busy');
+    try{
+      var P=await ingest(f,f.name);
+      if(P&&P.mode==='pub'&&!P.kept)
+        throw new Error('this looks like the school directory but no school rows were read. Check it is the Public Schools and Districts file, not the Public Districts one.');
+      if(P&&P.mode==='score'&&!P.kept)
+        throw new Error('no usable rows found. Check this is a CAASPP research file for All Students.');
+    }
+    catch(e){ prog(null); say('Failed on '+f.name+': '+e.message,'err'); return; }
+  }
+  prog(null);
+  paintStatus();
+  if(!HAS.sb){say('Still need a Smarter Balanced scores file.','busy');return;}
+  say('');
+  rebuild();
+}
+
+/* stream a file line by line without holding it in memory */
+async function ingest(file,nameOverride){
+  var fname=nameOverride||file.name||'data.zip';
+  if(/\.(xlsx|xls)$/i.test(fname))
+    throw new Error('that is the Excel version. On the CDE page, use the TXT link rather than the XLSX one \u2014 this tool reads the tab-delimited text file.');
+  if(/\.pdf$/i.test(fname)) throw new Error('that is a PDF, not a data file.');
+  var P=newParser(fname), n=0, last=0;
+  function feedChunk(text,pct){
+    P.buf+=text;
+    var s=0,i;
+    while((i=P.buf.indexOf('\n',s))>=0){ P.line(P.buf.slice(s,i)); s=i+1; n++; }
+    P.buf=P.buf.slice(s);
+    if(pct!=null&&pct-last>0.5){last=pct;prog(pct);}
+  }
+  if(/\.zip$/i.test(fname)){
+    if(typeof JSZip==='undefined')throw new Error('unzip library did not load');
+    var zip=await JSZip.loadAsync(file), best=null,bs=-1;
+    zip.forEach(function(p,e){
+      if(e.dir||!/\.(txt|csv|dat)$/i.test(p))return;
+      var s=(e._data&&e._data.uncompressedSize)||0;
+      if(s>bs){bs=s;best=e;}
+    });
+    if(!best)throw new Error('no .txt or .csv inside the zip');
+    prog(0);
+    await new Promise(function(res,rej){
+      var st=best.internalStream('string');
+      st.on('data',function(chunk,meta){ try{feedChunk(chunk,meta&&meta.percent);}catch(err){rej(err);} });
+      st.on('error',rej);
+      st.on('end',function(){res();});
+      st.resume();
+    });
+  } else if(file.stream&&typeof TextDecoder!=='undefined'){
+    prog(0);
+    var rd=file.stream().getReader(), dec=new TextDecoder('utf-8'), read=0;
+    while(true){
+      var r=await rd.read();
+      if(r.done)break;
+      read+=r.value.length;
+      feedChunk(dec.decode(r.value,{stream:true}), file.size?read/file.size*100:null);
+    }
+    feedChunk(dec.decode(),100);
+  } else {
+    feedChunk(await file.text(),100);
+  }
+  if(P.buf)P.line(P.buf);
+  P.done();
+  return P;
+}
+
+/* ============ parser ============ */
+function sniff(l){
+  var c={'\t':(l.match(/\t/g)||[]).length,';':(l.match(/;/g)||[]).length,
+         '^':(l.match(/\^/g)||[]).length,',':(l.match(/,/g)||[]).length};
+  var best='^',n=c['^'];
+  ['\t',';',','].forEach(function(d){if(c[d]>n){best=d;n=c[d];}});
+  return best;}
+function splitLine(l,d){
+  if(d!==',')return l.split(d);
+  var o=[],c='',q=false;
+  for(var i=0;i<l.length;i++){var ch=l[i];
+    if(q){if(ch==='"'){if(l[i+1]==='"'){c+='"';i++;}else q=false;}else c+=ch;}
+    else{if(ch==='"')q=true;else if(ch===','){o.push(c);c='';}else c+=ch;}}
+  o.push(c);return o;}
+function nth(line,idx,d){
+  var s=0;
+  for(var k=0;k<idx;k++){s=line.indexOf(d,s);if(s<0)return '';s++;}
+  var e=line.indexOf(d,s);
+  return e<0?line.slice(s):line.slice(s,e);}
+function norm(s){return String(s||'').replace(/\uFEFF/g,'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function headerMap(cells){
+  var m={},h=0;
+  for(var i=0;i<cells.length;i++){var k=norm(cells[i]);if(!k)continue;
+    if(m[k]===undefined)m[k]=i;
+    if(/^(county code|district code|school code|test id|mean scale score|type id|student group id|subgroup id|demographic id|school name)$/.test(k))h++;}
+  return h>=3?m:null;}
+function pick(m,names){for(var i=0;i<names.length;i++){var k=norm(names[i]);if(m[k]!==undefined)return m[k];}return -1;}
+function num(v){if(v==null)return NaN;var s=String(v).trim();
+  if(!s||s==='*'||s==='--'||s==='-'||s.toUpperCase()==='N/A')return NaN;
+  var n=parseFloat(s.replace(/[^0-9.\-]/g,''));return isFinite(n)?n:NaN;}
+function pad(v,n){var s=String(v==null?'':v).trim();while(s.length<n)s='0'+s;return s;}
+function newRec(cds,c,d,s){return {cds:cds,county:c,district:d,school:s,countyName:'',districtName:'',schoolName:'',y:{},grades:new Set()};}
+function slot(r,y){return r.y[y]||(r.y[y]={sb:{},cast:{},sed:{},nsed:{}});}
+
+function newParser(name){
+  var P={buf:'',first:true,mode:null,d:'^',I:null,isCast:false,kept:0};
+  P.line=function(L){
+    if(L==null)return;
+    if(L.length&&L.charCodeAt(L.length-1)===13)L=L.slice(0,-1);
+    if(!L||!L.trim())return;
+    if(P.first){
+      P.first=false;
+      P.d=sniff(L);
+      var cells=splitLine(L,P.d), hm=headerMap(cells);
+      var low=L.toLowerCase();
+      if(low.indexOf('cdscode')>=0&&(low.indexOf('edopscode')>=0||low.indexOf('charter')>=0)){
+        P.mode='pub'; setupPub(cells); return;
+      }
+      if(hm){
+        var hasName=pick(hm,['school name'])>=0, hasTest=pick(hm,['test id'])>=0;
+        P.mode=(hasName&&!hasTest)?'ent':'score';
+        P.isCast=pick(hm,['life sciences domain percent above standard','life sciences domain percentage above standard'])>=0;
+        setup(hm,cells);
+        return;
+      }
+      // headerless: field count discriminates
+      P.mode=cells.length<=12?'ent':'score';
+      P.isCast=cells.length<=31&&num(cells[10])===17;
+      setup(null,cells);
+      // fall through: this line is data
+    }
+    if(P.mode==='pub')pubLine(L); else if(P.mode==='ent')entLine(L); else scoreLine(L);
+  };
+  function setup(hm,cells){
+    var I={};
+    if(P.mode==='ent'){
+      if(hm){I.c=pick(hm,['county code']);I.d=pick(hm,['district code']);I.s=pick(hm,['school code']);
+        I.cn=pick(hm,['county name']);I.dn=pick(hm,['district name']);I.sn=pick(hm,['school name']);}
+      else if(cells&&cells.length<=9){I.c=0;I.d=1;I.s=2;I.cn=5;I.dn=6;I.sn=7;}
+      else{I.c=0;I.d=1;I.s=2;I.cn=6;I.dn=7;I.sn=8;}
+    } else if(hm){
+      I.c=pick(hm,['county code']);I.d=pick(hm,['district code']);I.s=pick(hm,['school code']);
+      I.yr=pick(hm,['test year']);
+      I.grp=pick(hm,['student group id','subgroup id','demographic id']);
+      I.grade=pick(hm,['grade']);I.test=pick(hm,['test id']);I.type=pick(hm,['type id']);
+      I.ms=pick(hm,['mean scale score']);
+      I.pma=pick(hm,['percentage standard met and above']);
+      I.pex=pick(hm,['percentage standard exceeded']);
+      I.n=pick(hm,['students tested','total students tested','total number of students tested']);
+      I.enr=pick(hm,['students enrolled','total students enrolled','caaspp reported enrollment','cast reported enrollment']);
+      I.sn=pick(hm,['school name']);I.dn=pick(hm,['district name']);
+      if(P.isCast){
+        I.a1=pick(hm,['life sciences domain percent above standard','life sciences domain percentage above standard']);
+        I.a2=pick(hm,['physical sciences domain percent above standard','physical sciences domain percentage above standard']);
+        I.a3=pick(hm,['earth and space sciences domain percent above standard','earth and space sciences domain percentage above standard']);
+        I.a4=-1;
+      } else {
+        I.a1=pick(hm,['area 1 percentage above standard','area 1 percent above standard']);
+        I.a2=pick(hm,['area 2 percentage above standard','area 2 percent above standard']);
+        I.a3=pick(hm,['area 3 percentage above standard','area 3 percent above standard']);
+        I.a4=pick(hm,['area 4 percentage above standard','area 4 percent above standard']);
+      }
+    } else {
+      I={c:0,d:1,s:2,yr:4,grp:5,grade:9,test:10,enr:11,n:12,ms:13,pex:14,pma:16,sn:-1,dn:-1};
+      if(P.isCast){I.a1=22;I.a2=25;I.a3=28;I.a4=-1;I.type=29;}
+      else{I.a1=20;I.a2=23;I.a3=26;I.a4=29;I.type=32;}
+    }
+    P.I=I;
+  }
+  function setupPub(cells){
+    var m={};
+    for(var i=0;i<cells.length;i++){var k=norm(cells[i]);if(k&&m[k]===undefined)m[k]=i;}
+    P.I={cds:pick(m,['cdscode']),charter:pick(m,['charter']),magnet:pick(m,['magnet']),
+      virtual:pick(m,['virtual']),soc:pick(m,['soc']),socn:pick(m,['soctype']),
+      ed:pick(m,['edopscode']),edn:pick(m,['edopsname']),status:pick(m,['statustype']),
+      fund:pick(m,['fundingtype']),multi:pick(m,['multilingual']),eil:pick(m,['eilcode'])};
+  }
+  function pubLine(L){
+    var I=P.I,c=splitLine(L,P.d);
+    var cds=String(c[I.cds]||'').trim();
+    if(cds.length!==14||cds.slice(7)==='0000000')return;
+    function f(i){return i>=0?String(c[i]||'').trim():'';}
+    PUB.set(cds,{charter:f(I.charter).toUpperCase().charAt(0),magnet:f(I.magnet).toUpperCase().charAt(0),
+      virtual:f(I.virtual).toUpperCase().charAt(0),soc:f(I.soc),socName:f(I.socn),
+      edOps:f(I.ed),edOpsName:f(I.edn),status:f(I.status),funding:f(I.fund),
+      multi:f(I.multi).toUpperCase().charAt(0),eil:f(I.eil)});
+    HAS.pub=true; P.kept++;
+  }
+  function entLine(L){
+    var I=P.I,c=splitLine(L,P.d);
+    var cc=pad(c[I.c],2),dd=pad(c[I.d],5),ss=pad(c[I.s],7);
+    if(ss==='0000000')return;
+    var cds=cc+dd+ss,r=SCHOOLS.get(cds);
+    if(!r){r=newRec(cds,cc,dd,ss);SCHOOLS.set(cds,r);}
+    if(I.cn>=0&&c[I.cn]&&!r.countyName)r.countyName=String(c[I.cn]).trim();
+    if(I.dn>=0&&c[I.dn]&&!r.districtName)r.districtName=String(c[I.dn]).trim();
+    if(I.sn>=0&&c[I.sn]&&!r.schoolName)r.schoolName=String(c[I.sn]).trim();
+    HAS.ent=true;
+  }
+  function scoreLine(L){
+    var I=P.I;
+    // fast path: reject unwanted student groups before allocating 33 strings
+    if(I.grp>=0){
+      var gid=+nth(L,I.grp,P.d);
+      if(gid!==1&&gid!==31&&gid!==111)return;
+    }
+    var c=splitLine(L,P.d);
+    var ss=pad(c[I.s],7); if(ss==='0000000')return;
+    if(I.type>=0){var ty=num(c[I.type]);if(ty!==7&&ty!==9&&ty!==10)return;}
+    var year=I.yr>=0?num(c[I.yr]):NaN; if(!isFinite(year))return;
+    var g=num(c[I.grade]); if(!isFinite(g))return;
+    var test=I.test>=0?num(c[I.test]):(P.isCast?17:NaN);
+    if(P.isCast){ if(test!==17)return; } else if(test!==1&&test!==2)return;
+    var gid2=I.grp>=0?num(c[I.grp]):1;
+
+    var cds=pad(c[I.c],2)+pad(c[I.d],5)+ss, r=SCHOOLS.get(cds);
+    if(!r){r=newRec(cds,pad(c[I.c],2),pad(c[I.d],5),ss);SCHOOLS.set(cds,r);}
+    if(!r.schoolName&&I.sn>=0&&c[I.sn])r.schoolName=String(c[I.sn]).trim();
+    if(!r.districtName&&I.dn>=0&&c[I.dn])r.districtName=String(c[I.dn]).trim();
+
+    var S=slot(r,year);
+    YEARS.add(year);
+    var nT=I.n>=0?num(c[I.n]):NaN, pma=I.pma>=0?num(c[I.pma]):NaN;
+
+    if(gid2===1){
+      var o={ms:I.ms>=0?num(c[I.ms]):NaN,pma:pma,pex:I.pex>=0?num(c[I.pex]):NaN,
+             n:nT,enr:I.enr>=0?num(c[I.enr]):NaN,
+             a1:I.a1>=0?num(c[I.a1]):NaN,a2:I.a2>=0?num(c[I.a2]):NaN,
+             a3:I.a3>=0?num(c[I.a3]):NaN,a4:I.a4>=0?num(c[I.a4]):NaN};
+      if(P.isCast){ S.cast[g]=o; GS.cast.add(g); CASTY.add(year); HAS.cast=true;
+        if(g!==13&&g!==14)r.grades.add(g); }
+      else { (S.sb[g]||(S.sb[g]={}))[test]=o; GS.sb.add(g); SBY.add(year); HAS.sb=true;
+        if(g!==13)r.grades.add(g); }
+    } else if(!P.isCast){
+      var k=gid2===31?'sed':'nsed';
+      (S[k][g]||(S[k][g]={}))[test]={pma:pma,n:nT};
+      GS.ses.add(g); HAS.ses=true;
+    }
+    P.kept++;
+  }
+  P.done=function(){};
+  return P;
+}
+
+/* ============ hosted data ============ */
+var HOSTED=[], LOADED={};
+async function fetchBlob(path,label){
+  say('Downloading '+label+'\u2026','busy');
+  prog(0);
+  var res=await fetch(path,{cache:'default'});
+  if(!res.ok)throw new Error('server returned '+res.status+' for '+path);
+  var total=+(res.headers.get('content-length')||0);
+  if(res.body&&res.body.getReader){
+    var rd=res.body.getReader(),chunks=[],got=0;
+    while(true){
+      var r=await rd.read(); if(r.done)break;
+      chunks.push(r.value); got+=r.value.length;
+      if(total)prog(got/total*100);
+    }
+    return new Blob(chunks);
+  }
+  return await res.blob();
+}
+async function loadHosted(f){
+  if(LOADED[f.path])return;
+  var blob=await fetchBlob(f.path,f.label||f.path);
+  var nm=f.path.split('/').pop();
+  say('Reading '+(f.label||nm)+'\u2026','busy');
+  await ingest(blob,nm);
+  LOADED[f.path]=true;
+}
+function renderHosted(){
+  if(!HOSTED.length)return;
+  document.getElementById('hostedgrp').style.display='';
+  var el=document.getElementById('hosted');
+  el.innerHTML=HOSTED.map(function(f,i){
+    var done=!!LOADED[f.path];
+    return '<button data-i="'+i+'"'+(done?' disabled':'')+'>'+(done?'\u2713 ':'')+
+      esc(f.label||f.path)+(f.size?'<span class="sz">'+esc(f.size)+'</span>':'')+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(el.querySelectorAll('button'),function(b){
+    if(b.disabled)return;
+    b.onclick=async function(){
+      try{ await loadHosted(HOSTED[+b.getAttribute('data-i')]); }
+      catch(e){ prog(null); say('Could not load that file: '+e.message,'err'); return; }
+      prog(null); say(''); paintStatus(); renderHosted();
+      if(HAS.sb)rebuild();
+    };
+  });
+}
+(async function boot(){
+  var man, viaHttp=(typeof location!=='undefined')&&/^https?:$/.test(location.protocol);
+  function hint(t){ if(viaHttp){ msgEl.textContent=t; msgEl.className='msg hint'; } }
+  try{
+    var res=await fetch('data/manifest.json',{cache:'no-cache'});
+    if(!res.ok){
+      hint('No data is published with this page \u2014 data/manifest.json returned '+res.status+
+           '. Load files manually below, or see README.md to publish them.');
+      return;
+    }
+    man=await res.json();
+  }catch(e){
+    hint('No data is published with this page. Load files manually below, or see README.md to publish them.');
+    return;
+  }
+  HOSTED=(man&&man.files)||[];
+  if(!HOSTED.length){ hint('data/manifest.json lists no files. Add the CAASPP zips to data/ and list them there.'); return; }
+  renderHosted();
+  var auto=HOSTED.filter(function(f){return f.auto;});
+  try{
+    for(var i=0;i<auto.length;i++)await loadHosted(auto[i]);
+  }catch(e){
+    prog(null);
+    say('Published data is missing: '+e.message+'. The zips need to sit in the data/ folder next to this page \u2014 '+
+        'the manifest lists them but the server does not have them. You can still drop files in below.','err');
+    return;
+  }
+  prog(null); say(''); paintStatus(); renderHosted();
+  if(HAS.sb){ rebuild(); var b=document.querySelector('.loader-body'); if(b)b.style.display='none';
+    var c=document.getElementById('collapse'); if(c)c.textContent='Show this panel'; }
+})();
+
+/* ============ build ============ */
+function paintStatus(){
+  var yrs=Array.from(YEARS).sort(function(a,b){return b-a;});
+  mark('f-core',HAS.sb,'English and math');
+  mark('f-ent',HAS.ent,'School names');
+  mark('f-sci',HAS.cast,'Science');
+  mark('f-yrs',yrs.length>0,'Years loaded',yrs.join(', ')||'');
+  mark('f-ses',HAS.ses,'Socioeconomic groups');
+  mark('f-pub',HAS.pub,'School directory',PUB.size?PUB.size.toLocaleString()+' schools':'');
+}
+function mark(id,on,label,extra){
+  var e=document.getElementById(id);e.className=on?'ok':'no';
+  e.textContent=label+(on&&extra?': '+extra:'');
+}
+function avail(need){
+  if(need==='sb')return HAS.sb;
+  if(need==='cast')return HAS.cast;
+  if(need==='ses')return HAS.ses;
+  if(need==='sb2')return SBY.size>=2;
+  if(need==='cast2')return CASTY.size>=2;
+  if(need==='pub')return HAS.pub;
+  if(need==='pubses')return HAS.pub&&HAS.ses;
+  return true;
+}
+function rebuild(){
+  if(PUB.size)SCHOOLS.forEach(function(r){var d=PUB.get(r.cds);if(d)r.p=d;});
+  document.getElementById('collapse').style.display='inline-block';
+  document.getElementById('controls').classList.add('on');
+  document.getElementById('main').classList.add('on');
+  fillYears();fillMeasures();fillPresets();fillCounties();fillDistricts();fillGrades();
+  sizeCanvas();refresh();
+}
+function fillYears(){
+  var ys=Array.from(YEARS).sort(function(a,b){return b-a;});
+  var y=document.getElementById('year'),p=document.getElementById('prior');
+  var pv=y.value;
+  y.innerHTML=ys.map(function(v){return '<option value="'+v+'">'+(v-1)+'\u2013'+String(v).slice(2)+'</option>';}).join('');
+  if(ys.indexOf(+pv)>=0)y.value=pv;
+  var cur=+y.value;
+  var others=ys.filter(function(v){return v!==cur;});
+  p.innerHTML='<option value="">(none)</option>'+others.map(function(v){
+    return '<option value="'+v+'">'+(v-1)+'\u2013'+String(v).slice(2)+'</option>';}).join('');
+  if(others.length){var below=others.filter(function(v){return v<cur;});p.value=below.length?String(Math.max.apply(null,below)):'';}
+}
+function fillMeasures(){
+  var groups=[];
+  M.forEach(function(m){
+    if(!avail(m.need))return;
+    var G=groups.filter(function(x){return x.g===m.grp;})[0];
+    if(!G){G={g:m.grp,items:[]};groups.push(G);}
+    G.items.push(m);
+  });
+  var html=groups.map(function(G){
+    return '<optgroup label="'+esc(G.g)+'">'+G.items.map(function(m){
+      return '<option value="'+m.id+'">'+esc(m.label)+'</option>';}).join('')+'</optgroup>';}).join('');
+  var x=document.getElementById('mx'),y=document.getElementById('my'),xv=x.value,yv=y.value;
+  x.innerHTML=html;y.innerHTML=html;
+  x.value=MBY[xv]&&avail(MBY[xv].need)?xv:'ela_pma';
+  y.value=MBY[yv]&&avail(MBY[yv].need)?yv:'math_pma';
+}
+function fillPresets(){
+  var el=document.getElementById('presets'),html='',last='';
+  PRESETS.forEach(function(p,i){
+    if(p.g!==last){html+='<div class="pgrp">'+esc(p.g)+'</div>';last=p.g;}
+    var can=avail(p.need);
+    html+='<button data-i="'+i+'"'+(can?'':' disabled')+'><span class="pt">'+esc(p.t)+
+      '</span><span class="pd">'+(can?esc(p.d):'Not available yet \u2014 '+esc(NEEDLABEL[p.need]||'load more data'))+'</span></button>';
+  });
+  el.innerHTML=html;
+  Array.prototype.forEach.call(el.querySelectorAll('button'),function(b){
+    if(b.disabled)return;
+    b.onclick=function(){
+      var p=PRESETS[+b.getAttribute('data-i')];
+      document.getElementById('mx').value=p.x;document.getElementById('my').value=p.y;
+      document.getElementById('cby').value=p.color||'fit';
+      if(p.stype)document.getElementById('stype').value=p.stype;
+      fillGrades();refresh();};
+  });
+}
+
+function fillCounties(){
+  var u=new Map();
+  SCHOOLS.forEach(function(r){if(r.countyName)u.set(r.county,r.countyName);});
+  var a=Array.from(u.entries()).sort(function(p,q){return p[1].localeCompare(q[1]);});
+  var s=document.getElementById('county'),pv=s.value;
+  s.innerHTML='<option value="">All counties</option>'+a.map(function(e){
+    return '<option value="'+e[0]+'">'+esc(e[1])+'</option>';}).join('');
+  s.value=pv;
+}
+function fillDistricts(){
+  var cty=document.getElementById('county').value,agg=new Map();
+  SCHOOLS.forEach(function(r){
+    if(cty&&r.county!==cty)return;
+    if(!r.districtName)return;
+    var k=r.county+r.district,e=agg.get(k);
+    if(!e){e={n:0,names:new Map()};agg.set(k,e);}
+    e.n++;
+    e.names.set(r.districtName,(e.names.get(r.districtName)||0)+1);
+  });
+  var a=[];
+  agg.forEach(function(e,k){
+    var best='',bc=-1;
+    e.names.forEach(function(c,nm){if(c>bc){bc=c;best=nm;}});
+    a.push([k,best,e.n]);
+  });
+  a.sort(function(x,y){return x[1].localeCompare(y[1]);});
+  var s2=document.getElementById('district'),pv=s2.value;
+  s2.innerHTML='<option value="">All districts ('+a.length.toLocaleString()+')</option>'+
+    a.map(function(e){return '<option value="'+e[0]+'">'+esc(e[1])+' \u2014 '+
+      e[2].toLocaleString()+(e[2]===1?' school':' schools')+'</option>';}).join('');
+  s2.value=a.some(function(e){return e[0]===pv;})?pv:'';
+}
+
+function fillGrades(){
+  var mx=MBY[document.getElementById('mx').value],my=MBY[document.getElementById('my').value];
+  if(!mx||!my)return;
+  var need=[mx.gs,my.gs],all=new Set();
+  ['sb','cast','ses'].forEach(function(k){GS[k].forEach(function(g){all.add(g);});});
+  var okg=[];
+  Array.from(all).sort(function(a,b){return a-b;}).forEach(function(g){
+    if(need.every(function(k){return GS[k].has(g);}))okg.push(g);});
+  okg.sort(function(a,b){return a===13?-1:b===13?1:a-b;});
+  var s=document.getElementById('grade'),pv=s.value;
+  s.innerHTML=okg.map(function(g){return '<option value="'+g+'">'+(GLAB[g]||('Grade '+g))+'</option>';}).join('');
+  if(okg.indexOf(+pv)>=0)s.value=pv;else if(okg.length)s.value=okg[0];
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function levelOf(r){
+  var hi=r.grades.has(10)||r.grades.has(11)||r.grades.has(12),
+      mid=r.grades.has(6)||r.grades.has(7)||r.grades.has(8),
+      el=r.grades.has(3)||r.grades.has(4)||r.grades.has(5);
+  if(hi&&!mid&&!el)return 'high';if(mid&&!hi&&!el)return 'mid';if(el&&!hi&&!mid)return 'elem';return 'span';}
+
+/* ============ filter + fit ============ */
+function refresh(){
+  var mx=MBY[document.getElementById('mx').value],my=MBY[document.getElementById('my').value];
+  if(!mx||!my)return;
+  var grade=+document.getElementById('grade').value;
+  var cx={y:+document.getElementById('year').value,p:+document.getElementById('prior').value||null};
+  var lvl=document.getElementById('level').value,cty=document.getElementById('county').value,
+      dist=document.getElementById('district').value,minN=+document.getElementById('minn').value;
+  document.getElementById('minnv').textContent=minN;
+
+  POINTS=[];EXCLUDED=0;ZOOM=null;
+  var st=document.getElementById('stype').value;
+  SCHOOLS.forEach(function(r){
+    if(cty&&r.county!==cty)return;
+    if(dist&&(r.county+r.district)!==dist)return;
+    if(lvl!=='all'&&levelOf(r)!==lvl)return;
+    var cat=enrollCat(r);
+    if(st==='noref'){ if(cat==='referral'){EXCLUDED++;return;} }
+    else if(st!=='all'&&cat!==st)return;
+    var a=mx.f(r,grade,cx),b=my.f(r,grade,cx);
+    if(!a||!b||!isFinite(a.v)||!isFinite(b.v))return;
+    var n=Math.min(isFinite(a.n)?a.n:0,isFinite(b.n)?b.n:0);
+    if(n<minN)return;
+    POINTS.push({r:r,x:a.v,y:b.v,n:n,res:0,cat:cat});
+  });
+  FIT=ols(POINTS);
+  if(FIT){
+    for(var i=0;i<POINTS.length;i++){var p=POINTS[i];p.res=p.y-(FIT.a+FIT.b*p.x);}
+    var s=POINTS.map(function(p){return Math.abs(p.res);}).sort(function(a,b){return a-b;});
+    FIT.scale=s.length?(s[Math.floor(s.length*0.92)]||1):1;
+  }
+  hoverIdx=-1;pinnedIdx=-1;
+  applySearch();describe(mx,my,grade,cx);standouts(mx,my);draw();zoomNote();
+}
+function ols(p){
+  var n=p.length;if(n<3)return null;
+  var sx=0,sy=0,i;
+  for(i=0;i<n;i++){sx+=p[i].x;sy+=p[i].y;}
+  var mx=sx/n,my=sy/n,sxy=0,sxx=0,syy=0;
+  for(i=0;i<n;i++){var dx=p[i].x-mx,dy=p[i].y-my;sxy+=dx*dy;sxx+=dx*dx;syy+=dy*dy;}
+  if(Math.sqrt(sxx/n)<1e-9*(Math.abs(mx)+1)||Math.sqrt(syy/n)<1e-9*(Math.abs(my)+1))return null;
+  var b=sxy/sxx;
+  return {a:my-b*mx,b:b,r:sxy/Math.sqrt(sxx*syy||1),mx:mx,my:my,n:n};
+}
+function unit(m){return (m.kind==='pct'||m.kind==='claim')?'%':((m.kind==='gap'||m.kind==='delta')?' pts':'');}
+function zoomNote(){
+  var el=document.getElementById('s-zoom'),tx=document.getElementById('s-zoomtxt');
+  if(!el||!tx)return;
+  if(!ZOOM||!GEO){el.style.display='none';return;}
+  var vis=0;
+  for(var i=0;i<POINTS.length;i++)if(GEO.vis(POINTS[i]))vis++;
+  el.style.display='';
+  tx.textContent='Zoomed in \u2014 showing '+vis.toLocaleString()+' of '+POINTS.length.toLocaleString()+
+    ' schools. The fitted line still reflects all of them.';
+}
+function describe(mx,my,grade,cx){
+  var cEl=document.getElementById('s-count'),wEl=document.getElementById('s-warn');
+  if(!POINTS.length){
+    cEl.textContent='No schools match these filters. Try widening the county or lowering the minimum tested.';
+    wEl.textContent='';return;
+  }
+  var where=document.getElementById('district').value?'this district':
+            (document.getElementById('county').value?'this county':'California');
+  var cby=document.getElementById('cby').value;
+  var colTxt = cby==='fit'
+    ? 'Colour shows whether its '+my.short+' is higher or lower than the statewide pattern would predict from its '+mx.short+'.'
+    : (cby==='enroll' ? 'Colour shows how students get in: a neighbourhood place by address, a school the family applied to, or a referral placement.'
+      : cby==='charter' ? 'Colour separates charter schools from district-run ones.'
+      : 'Colour separates online schools from classroom schools.');
+  cEl.textContent=POINTS.length.toLocaleString()+' schools in '+where+
+    '. Each dot is one school \u2014 hover to see its name. '+colTxt+
+    (EXCLUDED?' '+EXCLUDED.toLocaleString()+' continuation, community day and juvenile court schools are held out; switch School type to bring them back.':'');
+
+  var w=[],lvl=document.getElementById('level').value,minN=+document.getElementById('minn').value;
+  if((mx.kind==='delta'||my.kind==='delta'||mx.kind==='deltascale'||my.kind==='deltascale')&&!cx.p)
+    w.push('Choose a comparison year above \u2014 change measures need one.');
+  if(mx.gs!==my.gs&&(mx.gs==='cast'||my.gs==='cast')&&grade!==5&&grade!==8)
+    w.push('Science is only taken in grades 5, 8 and one high school year, so at '+(GLAB[grade]||('grade '+grade))+
+           ' the science and English/math results come from different students.');
+  if((mx.kind==='sbscale'&&my.kind==='castscale')||(mx.kind==='castscale'&&my.kind==='sbscale'))
+    w.push('These two scales are unrelated to each other, so this comparison does not mean anything. Use the percentage measures instead.');
+  if((mx.kind==='sbscale'||my.kind==='sbscale')&&grade===13&&lvl==='all')
+    w.push('Scale scores rise with grade level, so mixing all grades spreads schools apart for reasons unrelated to teaching. Pick a single grade or school level.');
+  if((mx.kind==='claim'||my.kind==='claim')&&minN<50)
+    w.push('These strand scores come from a small number of questions, so small schools bounce around. Raising the minimum tested steadies the picture.');
+  if(mx.id.indexOf('gap_ses')===0||my.id.indexOf('gap_ses')===0)
+    w.push('Schools where nearly all students are low-income \u2014 or nearly none \u2014 cannot appear here, because both groups need at least 11 students. What you see is economically mixed schools.');
+  if(mx.id==='sed_share'||my.id==='sed_share')
+    w.push('The low-income share here is based on who sat the test, not a school\u2019s official enrolment figure.');
+  if((mx.kind==='delta'||my.kind==='delta')&&cx.p&&Math.abs(cx.y-cx.p)>1)
+    w.push('The two years are '+Math.abs(cx.y-cx.p)+' apart, so most of these students are different people.');
+  wEl.textContent=w.join(' ');
+}
+function standouts(mx,my){
+  var head=document.getElementById('h-stand'),sub=document.getElementById('s-standsub'),
+      list=document.getElementById('top-stand'),card=document.getElementById('standcard');
+  var down=(my.pol==='down');
+  if(!FIT||POINTS.length<12||my.pol==='none'){ card.style.display='none'; return; }
+  card.style.display='';
+  // "better" is the low end when a higher value on this axis is a worse outcome
+  var s=POINTS.slice().sort(function(a,b){return down?(a.res-b.res):(b.res-a.res);}).slice(0,8);
+  head.textContent=down?'Smaller gaps than expected':'Doing better than expected';
+  sub.textContent=down
+    ? 'Given their '+mx.short+', these schools have a narrower '+my.short+' than the statewide pattern predicts.'
+    : 'Given their '+mx.short+', these schools\u2019 '+my.short+' runs ahead of what the statewide pattern predicts.';
+  var u=unit(my);
+  list.innerHTML=s.map(function(p){
+    return '<li data-cds="'+p.r.cds+'"><span class="nm">'+esc(p.r.schoolName||p.r.cds)+
+      '<span class="sub">'+esc(p.r.districtName||'')+'</span></span>'+
+      '<span class="val good"><b>'+(p.res>0?'+':'')+p.res.toFixed(1)+u+
+      '</b><span class="act">'+p.y.toFixed(1)+u+' actual</span></span></li>';
+  }).join('');
+  Array.prototype.forEach.call(list.querySelectorAll('li'),function(li){
+    li.onclick=function(){
+      var cds=li.getAttribute('data-cds');
+      for(var i=0;i<POINTS.length;i++)if(POINTS[i].r.cds===cds){pinnedIdx=i;break;}
+      draw();document.getElementById('plot').scrollIntoView({behavior:'smooth',block:'center'});};
+  });
+}
+
+function applySearch(){
+  var q=document.getElementById('search').value.trim().toLowerCase();
+  matches=new Set();if(q.length<2)return;
+  for(var i=0;i<POINTS.length;i++){var r=POINTS[i].r;
+    if((r.schoolName+' '+r.districtName).toLowerCase().indexOf(q)>=0)matches.add(i);}
+}
+
+/* ============ canvas ============ */
+var cv=document.getElementById('plot'),ctx=cv.getContext('2d');
+function sizeCanvas(){
+  var dpr=Math.min(window.devicePixelRatio||1,2),w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
+window.addEventListener('resize',function(){sizeCanvas();draw();});
+function ticks(lo,hi,t){
+  var span=hi-lo;if(span<=0)return[lo];
+  var raw=span/t,mag=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/mag;
+  var step=(n<1.5?1:n<3?2:n<7?5:10)*mag,out=[],v=Math.ceil(lo/step)*step;
+  for(;v<=hi+step*1e-6;v+=step)out.push(+v.toFixed(10));
+  return out;}
+function domain(vals,kind){
+  var el=document.getElementById('scale'),fit=el&&el.value==='fit';
+  if((kind==='pct'||kind==='claim')&&!fit)return[0,100];
+  if(!vals.length)return[0,100];
+  // loop rather than Math.min.apply - the arg list can run to ~10,000 schools
+  var lo=Infinity,hi=-Infinity;
+  for(var i=0;i<vals.length;i++){var v=vals[i];if(v<lo)lo=v;if(v>hi)hi=v;}
+  if(!isFinite(lo)||!isFinite(hi))return[0,100];
+  if(kind==='gap'||kind==='delta'||kind==='deltascale'){
+    var m=Math.max(Math.abs(lo),Math.abs(hi))*1.06||1;return[-m,m];}
+  var p=(hi-lo)*0.06||1;return[lo-p,hi+p];}
+function draw(){
+  var W=cv.clientWidth,H=cv.clientHeight;ctx.clearRect(0,0,W,H);
+  var mx=MBY[document.getElementById('mx').value],my=MBY[document.getElementById('my').value];
+  if(!mx||!my)return;
+  if(!POINTS.length){ctx.fillStyle='#8998A3';ctx.font='14px Archivo, sans-serif';ctx.textAlign='center';
+    ctx.fillText('No schools match these filters.',W/2,H/2);return;}
+  var ML=68,MR=W>620?92:20,MT=W>620?68:16,MB=58,hist=W>620;
+  var px0=ML,px1=W-MR,py0=MT,py1=H-MB;
+  var xs=POINTS.map(function(p){return p.x;}),ys=POINTS.map(function(p){return p.y;});
+  var same=(mx.kind===my.kind),dx,dy;
+  if(same){var d0=domain(xs.concat(ys),mx.kind);dx=d0;dy=d0;}
+  else{dx=domain(xs,mx.kind);dy=domain(ys,my.kind);}
+  if(ZOOM){dx=[ZOOM.x0,ZOOM.x1];dy=[ZOOM.y0,ZOOM.y1];}
+  var X=function(v){return px0+(v-dx[0])/(dx[1]-dx[0])*(px1-px0);};
+  var Y=function(v){return py1-(v-dy[0])/(dy[1]-dy[0])*(py1-py0);};
+  GEO={X:X,Y:Y,px0:px0,px1:px1,py0:py0,py1:py1,dx:dx,dy:dy,
+    ix:function(sx){return dx[0]+(sx-px0)/(px1-px0)*(dx[1]-dx[0]);},
+    iy:function(sy){return dy[0]+(py1-sy)/(py1-py0)*(dy[1]-dy[0]);},
+    vis:function(p){return p.x>=dx[0]&&p.x<=dx[1]&&p.y>=dy[0]&&p.y<=dy[1];}};
+
+  var tx=ticks(dx[0],dx[1],8),ty=ticks(dy[0],dy[1],8);
+  ctx.strokeStyle='#E1E8EC';ctx.lineWidth=1;ctx.beginPath();
+  tx.forEach(function(t){var x=Math.round(X(t))+.5;ctx.moveTo(x,py0);ctx.lineTo(x,py1);});
+  ty.forEach(function(t){var y=Math.round(Y(t))+.5;ctx.moveTo(px0,y);ctx.lineTo(px1,y);});
+  ctx.stroke();
+
+  // zero line for change / gap axes
+  ctx.save();ctx.strokeStyle='#A9B7C0';ctx.lineWidth=1.5;
+  if(!same&&(my.kind==='delta'||my.kind==='deltascale'||my.kind==='gap')&&dy[0]<0&&dy[1]>0){
+    ctx.beginPath();ctx.moveTo(px0,Math.round(Y(0))+.5);ctx.lineTo(px1,Math.round(Y(0))+.5);ctx.stroke();}
+  if(!same&&(mx.kind==='delta'||mx.kind==='deltascale'||mx.kind==='gap')&&dx[0]<0&&dx[1]>0){
+    ctx.beginPath();ctx.moveTo(Math.round(X(0))+.5,py0);ctx.lineTo(Math.round(X(0))+.5,py1);ctx.stroke();}
+  ctx.restore();
+
+
+  var rad=POINTS.length>4000?1.9:POINTS.length>1500?2.5:3.4,sc=FIT?FIT.scale:1;
+  var cby=document.getElementById('cby').value,i,vmode=valence(my);
+  var cats=null,order=null;
+  if(cby!=='fit'){
+    rad+=0.5;
+    cats=new Array(POINTS.length);
+    var freq={};
+    for(i=0;i<POINTS.length;i++){cats[i]=catOf(POINTS[i],cby);freq[cats[i]]=(freq[cats[i]]||0)+1;}
+    order=new Array(POINTS.length);
+    for(i=0;i<POINTS.length;i++)order[i]=i;
+    order.sort(function(a,b){return freq[cats[b]]-freq[cats[a]];});
+  }
+  for(var j=0;j<POINTS.length;j++){
+    i=order?order[j]:j;
+    var p=POINTS[i];
+    if(!GEO.vis(p))continue;
+    var al=matches.size?(matches.has(i)?0.95:0.10):(cby==='fit'?0.62:0.78);
+    if(cby==='fit')ctx.fillStyle=diverge(Math.max(-1,Math.min(1,p.res/(sc||1))),al,vmode);
+    else ctx.fillStyle=hexA(MODECOL[cby][cats[i]]||'#AEBAC3',al);
+    ctx.beginPath();ctx.arc(X(p.x),Y(p.y),rad,0,6.2832);ctx.fill();}
+  drawLegend(cby,same,vmode,my);
+  if(FIT){ctx.strokeStyle='#1B4D8F';ctx.lineWidth=2;ctx.beginPath();
+    ctx.moveTo(X(dx[0]),Y(FIT.a+FIT.b*dx[0]));ctx.lineTo(X(dx[1]),Y(FIT.a+FIT.b*dx[1]));ctx.stroke();}
+  if(hist){
+    var vx=[],vy=[];
+    for(i=0;i<POINTS.length;i++)if(GEO.vis(POINTS[i])){vx.push(POINTS[i].x);vy.push(POINTS[i].y);}
+    marg(vx,dx,X,6,MT-16,'x');marg(vy,dy,Y,px1+12,MR-28,'y');
+  }
+
+  ctx.strokeStyle='#0E1A22';ctx.lineWidth=1.5;
+  ctx.strokeRect(Math.round(px0)+.5,Math.round(py0)+.5,Math.round(px1-px0),Math.round(py1-py0));
+  ctx.fillStyle='#5A6B76';ctx.font='11px "IBM Plex Mono", monospace';
+  ctx.textAlign='center';ctx.textBaseline='top';
+  tx.forEach(function(t){ctx.fillText(lbl(t,mx),X(t),py1+8);});
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  ty.forEach(function(t){ctx.fillText(lbl(t,my),px0-9,Y(t));});
+  ctx.fillStyle='#0E1A22';ctx.font='600 13px Archivo, sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  ctx.fillText(mx.label,(px0+px1)/2,H-14);
+  ctx.save();ctx.translate(16,(py0+py1)/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';
+  ctx.fillText(my.label,0,0);ctx.restore();
+  if(DRAG&&DRAG.b){
+    var rx=Math.min(DRAG.a.x,DRAG.b.x),ry=Math.min(DRAG.a.y,DRAG.b.y),
+        rw=Math.abs(DRAG.b.x-DRAG.a.x),rh=Math.abs(DRAG.b.y-DRAG.a.y);
+    ctx.fillStyle='rgba(27,77,143,0.10)';ctx.fillRect(rx,ry,rw,rh);
+    ctx.strokeStyle='#1B4D8F';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+    ctx.strokeRect(rx+.5,ry+.5,rw,rh);ctx.setLineDash([]);
+  }
+  if(pinnedIdx>=0&&pinnedIdx<POINTS.length)marker(POINTS[pinnedIdx],X,Y,true,mx,my);
+  if(hoverIdx>=0&&hoverIdx<POINTS.length&&hoverIdx!==pinnedIdx)marker(POINTS[hoverIdx],X,Y,false,mx,my);
+}
+function lbl(v,m){
+  if(m.kind==='pct'||m.kind==='claim')return v+'%';
+  if(m.kind==='gap'||m.kind==='delta'||m.kind==='deltascale')return (v>0?'+':'')+v;
+  if(m.kind==='count')return v>=1000?(v/1000)+'k':String(Math.round(v));
+  return String(Math.round(v));}
+function catOf(p,mode){
+  if(mode==='enroll')return p.cat;
+  var d=p.r.p;
+  if(mode==='charter')return !d?'unknown':(d.charter==='Y'?'yes':'no');
+  if(mode==='virtual')return !d?'unknown':((d.virtual==='F'||d.virtual==='V')?'yes':'no');
+  return 'unknown';
+}
+var MODECOL={enroll:CATCOL,
+  charter:{yes:'#D55E00',no:'#0072B2',unknown:'#AEBAC3'},
+  virtual:{yes:'#D55E00',no:'#0072B2',unknown:'#AEBAC3'}};
+var MODELAB={enroll:CATLAB,
+  charter:{yes:'Charter',no:'District-run',unknown:'Not in directory'},
+  virtual:{yes:'Online',no:'In person',unknown:'Not in directory'}};
+function hexA(hex,a){
+  return 'rgba('+parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16)+','+a+')';
+}
+function drawLegend(mode,same,vmode,my){
+  var el=document.getElementById('legend');
+  if(!el)return;
+  var out='';
+  if(mode==='fit'){
+    var txt = vmode==='up'   ? 'behind schools with a similar '+(my?my.short:'profile')+' &nbsp;\u2190&nbsp;&nbsp;\u2192&nbsp; ahead of them'
+            : vmode==='down' ? 'narrower gap than the pattern &nbsp;\u2190&nbsp;&nbsp;\u2192&nbsp; wider gap'
+                             : 'below the statewide pattern &nbsp;\u2190&nbsp;&nbsp;\u2192&nbsp; above it (neither is better)';
+    out+='<span><span class="swatch" style="background:'+rampCss(vmode)+'"></span>'+txt+'</span>';
+  } else {
+    var counts={};POINTS.forEach(function(p){var k=catOf(p,mode);counts[k]=(counts[k]||0)+1;});
+    var lab=MODELAB[mode],col=MODECOL[mode];
+    Object.keys(lab).forEach(function(k){
+      if(!counts[k])return;
+      out+='<span><i style="display:inline-block;width:11px;height:11px;border-radius:50%;background:'+col[k]+
+        ';margin-right:6px;vertical-align:-1px"></i>'+lab[k]+' <b style="font-weight:500">'+counts[k].toLocaleString()+'</b></span>';
+    });
+  }
+  out+='<span><span class="sw-fit"></span>Statewide average pattern</span>';
+  el.innerHTML=out;
+}
+function valence(my){return my.pol==='down'?'down':(my.pol==='none'?'none':'up');}
+// green is reserved for the end that is genuinely better; where a measure has no
+// good direction we drop it entirely and use a neutral blue/orange split
+var RAMP={
+  up:  {hi:[0,158,115],  lo:[122,63,192]},
+  down:{hi:[122,63,192], lo:[0,158,115]},
+  none:{hi:[0,114,178],  lo:[213,94,0]}
+};
+function diverge(t,al,mode){
+  var R=RAMP[mode]||RAMP.up,N=[154,165,172],e=t<0?R.lo:R.hi,k=Math.abs(t),c=[
+    N[0]+(e[0]-N[0])*k,N[1]+(e[1]-N[1])*k,N[2]+(e[2]-N[2])*k];
+  return 'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+al+')';
+}
+function rampCss(mode){
+  var R=RAMP[mode]||RAMP.up,f=function(a){return 'rgb('+a[0]+','+a[1]+','+a[2]+')';};
+  return 'linear-gradient(90deg,'+f(R.lo)+',#C9D2D7,'+f(R.hi)+')';
+}
+function marg(vals,dom,S,off,thick,axis){
+  var B=44,bins=new Array(B).fill(0),mx=0,i;
+  for(i=0;i<vals.length;i++){var k=Math.floor((vals[i]-dom[0])/(dom[1]-dom[0])*B);
+    if(k<0)k=0;if(k>=B)k=B-1;bins[k]++;}
+  for(i=0;i<B;i++)mx=Math.max(mx,bins[i]);
+  if(!mx)return;
+  ctx.fillStyle='rgba(27,77,143,0.20)';
+  var span=dom[1]-dom[0];
+  for(i=0;i<B;i++){
+    var h=bins[i]/mx*thick,p0=S(dom[0]+(i/B)*span),p1=S(dom[0]+((i+1)/B)*span);
+    var w=Math.max(1,Math.abs(p1-p0)-1);
+    if(axis==='x')ctx.fillRect(Math.min(p0,p1),off+(thick-h),w,h);
+    else ctx.fillRect(off,Math.min(p0,p1),h,w);}}
+function marker(p,X,Y,pin,mx,my){
+  var x=X(p.x),y=Y(p.y);
+  ctx.strokeStyle=pin?'#1B4D8F':'#0E1A22';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(x,y,7,0,6.2832);ctx.stroke();
+  var L=[p.r.schoolName||p.r.cds,p.r.districtName||'',
+    mx.short+' '+p.x.toFixed(1)+unit(mx)+'   '+my.short+' '+p.y.toFixed(1)+unit(my),
+    'vs fit '+(p.res>0?'+':'')+p.res.toFixed(1)+unit(my)+'   n\u2248'+p.n];
+  if(p.r.p)L.push((CATLAB[p.cat]||'')+(p.r.p.socName?' \u00b7 '+p.r.p.socName:''));
+  ctx.font='12px Archivo, sans-serif';
+  var w=0;L.forEach(function(s){w=Math.max(w,ctx.measureText(s).width);});
+  w+=18;var h=L.length*16+12,bx=x+12,by=y-h-10;
+  if(bx+w>cv.clientWidth-6)bx=x-w-12;
+  if(by<4)by=y+14;
+  ctx.fillStyle='rgba(14,26,34,0.95)';ctx.fillRect(bx,by,w,h);
+  ctx.textAlign='left';ctx.textBaseline='top';
+  L.forEach(function(s,i){ctx.fillStyle=i===0?'#fff':(i===1?'#A9B7C0':'#D7E0E6');
+    ctx.font=(i===0?'600 12.5px':'11.5px')+' Archivo, sans-serif';
+    ctx.fillText(s,bx+9,by+7+i*16);});}
+function at(ev){var b=cv.getBoundingClientRect();return {x:ev.clientX-b.left,y:ev.clientY-b.top};}
+cv.addEventListener('mousedown',function(ev){
+  if(!GEO)return;
+  var p=at(ev);
+  if(p.x<GEO.px0||p.x>GEO.px1||p.y<GEO.py0||p.y>GEO.py1)return;
+  DRAG={a:p,b:null};dragged=false;
+});
+cv.addEventListener('mousemove',function(ev){
+  if(!GEO||!POINTS.length)return;
+  var m=at(ev);
+  if(DRAG){
+    if(Math.abs(m.x-DRAG.a.x)>3||Math.abs(m.y-DRAG.a.y)>3)dragged=true;
+    DRAG.b=m; hoverIdx=-1; draw(); return;
+  }
+  var best=-1,bd=144;
+  for(var i=0;i<POINTS.length;i++){
+    if(!GEO.vis(POINTS[i]))continue;
+    var dx=GEO.X(POINTS[i].x)-m.x,dy=GEO.Y(POINTS[i].y)-m.y,d=dx*dx+dy*dy;
+    if(d<bd){bd=d;best=i;}}
+  if(best!==hoverIdx){hoverIdx=best;draw();}
+});
+window.addEventListener('mouseup',function(ev){
+  if(!DRAG){return;}
+  var a=DRAG.a,b=DRAG.b;DRAG=null;
+  if(!b||!dragged){draw();return;}
+  var x0=GEO.ix(Math.min(a.x,b.x)),x1=GEO.ix(Math.max(a.x,b.x)),
+      y0=GEO.iy(Math.max(a.y,b.y)),y1=GEO.iy(Math.min(a.y,b.y));
+  // ignore slivers - they would zoom to an unreadable window
+  if(Math.abs(b.x-a.x)>8&&Math.abs(b.y-a.y)>8&&x1>x0&&y1>y0){
+    ZOOM={x0:x0,x1:x1,y0:y0,y1:y1};pinnedIdx=-1;hoverIdx=-1;
+  }
+  draw();zoomNote();
+});
+cv.addEventListener('mouseleave',function(){if(hoverIdx!==-1&&!DRAG){hoverIdx=-1;draw();}});
+cv.addEventListener('click',function(){
+  if(dragged){dragged=false;return;}
+  pinnedIdx=(hoverIdx>=0&&hoverIdx===pinnedIdx)?-1:hoverIdx;draw();
+});
+cv.addEventListener('dblclick',function(){if(ZOOM){ZOOM=null;draw();zoomNote();}});
+
+/* ============ wiring ============ */
+['mx','my'].forEach(function(id){document.getElementById(id).onchange=function(){fillGrades();refresh();};});
+document.getElementById('year').onchange=function(){fillYears();fillGrades();refresh();};
+['prior','level','grade','district','stype','cby','scale'].forEach(function(id){document.getElementById(id).onchange=refresh;});
+document.getElementById('county').onchange=function(){fillDistricts();refresh();};
+document.getElementById('swap').onclick=function(){
+  var x=document.getElementById('mx'),y=document.getElementById('my'),t=x.value;
+  x.value=y.value;y.value=t;fillGrades();refresh();};
+document.getElementById('unzoom').onclick=function(){ZOOM=null;draw();zoomNote();};
+document.getElementById('minn').oninput=function(){document.getElementById('minnv').textContent=this.value;refresh();};
+var st;document.getElementById('search').oninput=function(){clearTimeout(st);st=setTimeout(function(){applySearch();draw();},160);};
+document.getElementById('collapse').onclick=function(){
+  var b=document.querySelector('.loader-body'),open=b.style.display!=='none';
+  b.style.display=open?'none':'block';this.textContent=open?'Show this panel':'Hide this panel';};
+document.getElementById('export').onclick=function(){
+  var mx=MBY[document.getElementById('mx').value],my=MBY[document.getElementById('my').value];
+  var rows=[['cds','county','district','school','enrolment_type','charter','virtual','school_ownership',
+    mx.id,my.id,'residual_vs_fit','n'].join(',')];
+  POINTS.forEach(function(p){var d=p.r.p||{};
+    rows.push([p.r.cds,q(p.r.countyName),q(p.r.districtName),q(p.r.schoolName),
+      p.cat,d.charter||'',d.virtual||'',q(d.socName||''),
+      p.x,p.y,p.res.toFixed(3),p.n].join(','));});
+  var url=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));
+  var a=document.createElement('a');a.href=url;a.download='caaspp_'+mx.id+'_vs_'+my.id+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},2000);};
+function q(s){s=String(s||'');return /[",]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+</script>
+</body>
+</html>
