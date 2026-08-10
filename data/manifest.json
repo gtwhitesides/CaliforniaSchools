@@ -1,12 +1,11 @@
 {
   "title": "CAASPP school results explorer",
-  "note": "Paths are relative to index.html. Delete any line for a file you did not upload. auto:true loads when the page opens; auto:false shows a button instead.",
+  "note": "Paths are relative to index.html. 'provides' tells the tool which views a file unlocks, so a greyed-out view can load it on click. auto:true loads on page open.",
   "files": [
-    { "path": "data/sb_ca2025_1_csv_v1.zip",    "label": "English & math, 2024-25",       "size": "8 MB", "auto": true  },
-    { "path": "data/sb_ca2025entities_csv.zip", "label": "School names",                  "size": "1 MB", "auto": true  },
-    { "path": "data/pubschls.txt",              "label": "Add school types",              "size": "7 MB", "auto": false },
-    { "path": "data/cast_ca2025_1_csv_v1.zip",  "label": "Add science",                   "size": "2 MB", "auto": false },
-    { "path": "data/sb_ca2024_1_csv_v1.zip",    "label": "Add 2023-24 (year-on-year)",    "size": "8 MB", "auto": false },
-    { "path": "data/sb_ca2025_all_csv_ela_v1.zip", "label": "income breakdowns", "size": "76 MB", "provides": "ses", "auto": false }
+    { "path": "data/sb_ca2025_1_csv_v1.zip",    "label": "English & math, 2024-25",    "size": "8 MB", "provides": "sb",   "auto": true  },
+    { "path": "data/sb_ca2025entities_csv.zip", "label": "School names",               "size": "1 MB", "provides": "ent",  "auto": true  },
+    { "path": "data/pubschls.txt",              "label": "school types",               "size": "8 MB", "provides": "pub",  "auto": false },
+    { "path": "data/cast_ca2025_1_csv_v1.zip",  "label": "science results",            "size": "2 MB", "provides": "cast", "auto": false },
+    { "path": "data/sb_ca2024_1_csv_v1.zip",    "label": "last year's results",        "size": "8 MB", "provides": "sb2",  "auto": false }
   ]
 }
